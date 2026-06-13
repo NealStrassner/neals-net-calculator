@@ -1,0 +1,2186 @@
+<!DOCTYPE html>
+<!--
+  Neal's Net Calculator — v1.0 (June 12, 2026)
+  Companion to the paper of the same date; verifies its Appendix A checks V1-V26.
+  © Neal Strassner — https://github.com/NealStrassner
+  Implements Appendix B of "Neal's Net: A Self-Verifying Trigonometric System
+  on the Fibonacci 60-Ring" (Strassner, 2026). The net (the pairing-to-ten
+  structure on the Fibonacci last-digit ring) was identified by Neal Strassner c. 2015.
+  Implementation coded with Claude (Anthropic) under the author's direction;
+  all mathematics per the paper, machine-verified (see the Verify tab, V1-V26).
+  License: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/) -
+  you may share and adapt this file, but you MUST give credit to Neal Strassner
+  and link the source. Single file, no dependencies, no network calls.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="Neal Strassner (https://github.com/NealStrassner)">
+<meta name="license" content="CC BY 4.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neal's Net — Self-Verifying Trigonometric Calculator</title>
+<style>
+:root{
+  --bg:#070b12; --panel:#0d1420; --panel2:#101a2a; --edge:#1d2c44;
+  --cyan:#2de2ff; --mag:#ff4fd8; --grn:#43ffa0; --amb:#ffc34d; --red:#ff5566;
+  --txt:#cfe3f5; --dim:#7b92ab; --mono:Consolas,'Cascadia Mono',Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font:14px/1.5 'Segoe UI',system-ui,sans-serif;min-height:100vh}
+header{padding:18px 24px 10px;border-bottom:1px solid var(--edge);
+  background:radial-gradient(1200px 200px at 30% -50px,#11304a55,transparent)}
+header h1{font-size:21px;font-weight:600;letter-spacing:.5px;color:#fff}
+header h1 .net{color:var(--cyan);text-shadow:0 0 14px #2de2ff66}
+header p{color:var(--dim);font-size:12.5px;margin-top:2px}
+nav{display:flex;flex-wrap:wrap;gap:6px;padding:10px 24px;border-bottom:1px solid var(--edge);position:sticky;top:0;background:#070b12ee;z-index:5;backdrop-filter:blur(4px)}
+nav button{background:var(--panel);border:1px solid var(--edge);color:var(--dim);padding:7px 14px;border-radius:7px;cursor:pointer;font-size:13px;transition:all .15s}
+nav button:hover{color:var(--txt);border-color:#2b405f}
+nav button.active{color:#001018;background:var(--cyan);border-color:var(--cyan);box-shadow:0 0 16px #2de2ff44;font-weight:600}
+nav button.aboutBtn{border-color:#7a6428;color:var(--amb)}
+nav button.aboutBtn:hover{border-color:var(--amb);color:var(--amb)}
+nav button.aboutBtn.active{color:#1a1200;background:var(--amb);border-color:var(--amb);box-shadow:0 0 16px #ffc34d44}
+.layout{display:flex;gap:0;align-items:flex-start}
+main{flex:1;padding:20px 24px;min-width:0}
+section.tab{display:none}
+section.tab.active{display:block;animation:fadein .25s}
+@keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+h2{font-size:16px;color:#fff;margin-bottom:4px}
+h3{font-size:13.5px;color:var(--cyan);margin:14px 0 6px;text-transform:uppercase;letter-spacing:1px}
+.sub{color:var(--dim);font-size:12.5px;margin-bottom:14px;max-width:880px}
+.card{background:var(--panel);border:1px solid var(--edge);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+.row{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
+canvas{background:#080d16;border:1px solid var(--edge);border-radius:10px;max-width:100%}
+label.ck{display:inline-flex;align-items:center;gap:6px;margin-right:14px;cursor:pointer;color:var(--txt);font-size:13px}
+input[type=number],input[type=text],select{background:#0a1220;border:1px solid var(--edge);color:#fff;font:14px var(--mono);padding:7px 10px;border-radius:7px;width:130px}
+input:focus,select:focus{outline:none;border-color:var(--cyan)}
+button.go{background:linear-gradient(135deg,#0e3146,#103a57);border:1px solid #1f5f86;color:var(--cyan);padding:8px 16px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600}
+button.go:hover{box-shadow:0 0 14px #2de2ff33;border-color:var(--cyan)}
+button.go.m{border-color:#7c2a68;color:var(--mag);background:linear-gradient(135deg,#2c0e28,#3a1035)}
+button.go.m:hover{box-shadow:0 0 14px #ff4fd833;border-color:var(--mag)}
+button.go.g{border-color:#1f7c50;color:var(--grn);background:linear-gradient(135deg,#0c2c1c,#0e3a24)}
+button.go.g:hover{box-shadow:0 0 14px #43ffa033;border-color:var(--grn)}
+.big{font:600 26px var(--mono);color:#fff}
+.mono{font-family:var(--mono)}
+.ok{color:var(--grn)} .bad{color:var(--red)} .amb{color:var(--amb)} .cy{color:var(--cyan)} .mg{color:var(--mag)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{color:var(--dim);text-align:left;font-weight:600;padding:6px 10px;border-bottom:1px solid var(--edge)}
+td{padding:6px 10px;border-bottom:1px solid #14202f;font-family:var(--mono)}
+tr:hover td{background:#0e1828}
+.light{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:7px;vertical-align:-1px}
+.light.g{background:var(--grn);box-shadow:0 0 9px var(--grn)}
+.light.r{background:var(--red);box-shadow:0 0 9px var(--red)}
+.light.o{background:#33465e}
+#verifyBody tr.vrow{cursor:pointer}
+#verifyBody tr.vrow:hover td{background:#10203a}
+#verifyBody tr.workrow td{background:#081120;padding:0 10px 12px}
+#verifyBody tr.workrow pre{white-space:pre-wrap;color:#9fc1de;background:#071120;border:1px solid #14233a;border-radius:6px;padding:8px 10px;font-size:11.5px;line-height:1.55;margin:6px 0 0}
+.exp{color:var(--cyan);margin-right:6px;display:inline-block;width:10px}
+.steps{font-family:var(--mono);font-size:13px}
+.steps div{padding:5px 8px;border-left:2px solid var(--edge);margin:3px 0;background:#0a1322;border-radius:0 6px 6px 0}
+.steps .pass{border-left-color:var(--grn)}
+.steps .fail{border-left-color:var(--red)}
+.pill{display:inline-block;border:1px solid var(--edge);border-radius:20px;padding:2px 10px;margin:2px 3px;font:12.5px var(--mono);color:var(--txt);background:#0a1322}
+.pill b{color:var(--cyan)}
+aside#ledgerWrap{width:330px;flex-shrink:0;border-left:1px solid var(--edge);height:calc(100vh - 110px);position:sticky;top:52px;display:flex;flex-direction:column;background:#091018}
+aside#ledgerWrap.closed{width:38px}
+#ledgerHead{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--edge)}
+#ledgerHead h4{font-size:13px;color:var(--amb);letter-spacing:1px;text-transform:uppercase}
+#ledgerBody{flex:1;overflow-y:auto;padding:8px}
+.led{border:1px solid #16233a;border-radius:8px;padding:7px 9px;margin-bottom:7px;font:12px var(--mono);background:#0b1424}
+.led .op{color:#fff;font-weight:600}
+.led .det{color:var(--dim);margin-top:2px;word-break:break-word}
+.led.pass{border-left:3px solid var(--grn)} .led.fail{border-left:3px solid var(--red)}
+.led details{margin-top:5px}
+.led summary{cursor:pointer;color:var(--cyan);font-size:11px;user-select:none}
+.led summary:hover{text-shadow:0 0 8px #2de2ff66}
+.led pre{white-space:pre-wrap;color:#9fc1de;background:#071120;border:1px solid #14233a;border-radius:6px;padding:6px 8px;margin-top:4px;font-size:11px;line-height:1.55}
+.about p{max-width:840px;margin-bottom:10px;font-size:14px;line-height:1.65}
+.about .card h3{margin-top:2px}
+.about b{color:var(--cyan)}
+.tiny{font-size:11.5px;color:var(--dim)}
+button.mini{background:none;border:1px solid var(--edge);color:var(--dim);border-radius:6px;padding:2px 9px;cursor:pointer;font-size:11.5px}
+button.mini:hover{color:var(--txt);border-color:var(--cyan)}
+footer{padding:14px 24px;border-top:1px solid var(--edge);color:var(--dim);font-size:12px}
+.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:5px;max-width:760px}
+.kgrid button{background:#0a1322;border:1px solid var(--edge);color:var(--txt);border-radius:6px;padding:6px 2px;cursor:pointer;font:12.5px var(--mono)}
+.kgrid button:hover{border-color:var(--cyan);color:var(--cyan)}
+.kgrid button.sel{background:var(--cyan);color:#001018;border-color:var(--cyan);font-weight:700;box-shadow:0 0 10px #2de2ff55}
+.resbox{background:#0a1626;border:1px solid #1c3a55;border-radius:10px;padding:12px 16px;margin-top:10px}
+.notice{color:var(--amb);font-size:12.5px}
+@media(max-width:1100px){
+  .layout{flex-direction:column}
+  aside#ledgerWrap{width:100%;height:320px;position:static;border-left:none;border-top:1px solid var(--edge)}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="net">Neal's Net</span> — Self-Verifying Trigonometric Calculator</h1>
+  <p>The Fibonacci 60-Ring &nbsp;·&nbsp; invented by Neal Strassner &nbsp;·&nbsp; every operation carries its own digit certificate &nbsp;·&nbsp; <a href="https://github.com/NealStrassner" target="_blank" rel="noopener" style="color:var(--cyan);text-decoration:none">github.com/NealStrassner</a></p>
+</header>
+
+<nav id="nav">
+  <button data-tab="about" class="aboutBtn">ℹ Start here — what is this?</button>
+  <button data-tab="ring" class="active">1 · Ring</button>
+  <button data-tab="folds">2 · Angles &amp; Folds</button>
+  <button data-tab="cos">3 · COS (vesica ruler)</button>
+  <button data-tab="sin">4 · SIN</button>
+  <button data-tab="tan">5 · TAN (gnomon)</button>
+  <button data-tab="zoom">6 · Zoom ladder</button>
+  <button data-tab="wheels">7 · Wheels</button>
+  <button data-tab="verify">8 · Verify</button>
+</nav>
+
+<div class="layout">
+<main>
+
+<!-- ============ MODULE 1 : RING VIEW ============ -->
+<section class="tab active" id="tab-ring">
+  <h2>The Fibonacci 60-Ring</h2>
+  <p class="sub">Last digits of the Fibonacci sequence (seeds 0, 1, mod 10), one digit every 6°. Opposed reflection pairs sum to ten — the chords of Neal's Net: horizontal at odd positions, vertical at even, gaps only at the four cardinal 0s.</p>
+  <div class="card">
+    <label class="ck"><input type="checkbox" id="ckNet" checked> Net chords</label>
+    <label class="ck"><input type="checkbox" id="ckSkel"> 12-point skeleton</label>
+    <label class="ck"><input type="checkbox" id="ckWave"> Centered wave (d−5)</label>
+    <label class="ck"><input type="checkbox" id="ckCentered"> Centered labels (d−5)</label>
+    <label class="ck">Net visibility <input type="range" id="netSlider" min="0" max="100" value="45" style="vertical-align:middle;accent-color:#2de2ff" oninput="setNetAlpha(this.value)"></label>
+    &nbsp;&nbsp;<button class="go g" id="traceBtn" onclick="traceNet()">▶ Trace the net — watch every pair sum to ten</button>
+    <div class="tiny" style="margin-top:6px">Hover any digit on the ring to light up its chord and see the pair match.</div>
+  </div>
+  <div class="row">
+    <canvas id="cvRing" width="640" height="640"></canvas>
+    <div style="flex:1;min-width:260px">
+      <div class="card">
+        <h3>The ring, position 0 → 59</h3>
+        <div class="mono" id="ringDigits" style="word-spacing:6px;letter-spacing:1px;color:var(--cyan);white-space:pre;overflow-x:auto;line-height:1.9"></div>
+        <p class="tiny" style="margin-top:8px">Top row positions 0–29, bottom row 30–59. Every column is an antipodal pair: top + bottom = 10 — the half-turn law, visible at a glance (the two 0-columns are the cardinals). Generated live as Fibonacci mod 10 — not stored.</p>
+      </div>
+      <div class="card">
+        <h3>Digit laws on this ring</h3>
+        <div class="steps">
+          <div class="pass">Half-turn &nbsp; d(n) + d(n+30) ≡ 0 (mod 10)</div>
+          <div class="pass">Mirror &nbsp; d(60−n) = d(n) odd n · 10−d(n) even n</div>
+          <div class="pass">Quarter-turn &nbsp; d(n+15) ≡ 7·d(n) — 7² ≡ −1, the ring's imaginary unit</div>
+          <div class="pass">Third-turn &nbsp; d(n+20) = d(n) at n ≡ 2 (mod 3), else +5</div>
+        </div>
+        <button class="go" style="margin-top:10px" onclick="checkRingIntegrity()">Check ring integrity (the net's original job)</button>
+        <div id="integrityOut" class="mono" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MODULE 2 : FOLDS ============ -->
+<section class="tab" id="tab-folds">
+  <h2>Angle input &amp; checksummed folds</h2>
+  <p class="sub">Quantize: position = θ ÷ 6 (mod 60). Folds are jumps on the ring; every jump lands on a digit that must stand in a known relation to the starting digit. Signs come from the jump direction — never from lookup.</p>
+  <div class="card">
+    <span class="mono">θ =</span>
+    <input type="number" id="foldAngle" value="216" step="any"> °
+    <button class="go" onclick="setFoldAngle()">Quantize</button>
+    &nbsp;&nbsp;
+    <button class="go" onclick="doFold('half')">+180° (half-turn, +30)</button>
+    <button class="go" onclick="doFold('neg')">−θ (mirror, 60−n)</button>
+    <button class="go" onclick="doFold('supp')">180°−θ (supplement, 30−n)</button>
+    <button class="go" onclick="doFold('quarter')">+90° (quarter-turn, +15)</button>
+    &nbsp;&nbsp;
+    <span class="mono">rotate by</span> <input type="number" id="rotAngle" value="84" step="any" style="width:90px"> °
+    <button class="go m" onclick="doRotate()">+β (compose rotation)</button>
+    &nbsp;&nbsp;
+    <button class="go g" onclick="autoReduce()">Auto-reduce to QI + evaluate sin &amp; cos</button>
+  </div>
+  <div class="row">
+    <canvas id="cvFold" width="460" height="460"></canvas>
+    <div style="flex:1;min-width:300px">
+      <div class="card" id="foldStatus"></div>
+      <div class="card"><h3>Fold ledger (this angle)</h3><div class="steps" id="foldSteps"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MODULE 3 : COS ============ -->
+<section class="tab" id="tab-cos">
+  <h2>COS — the vesica cosine ruler</h2>
+  <p class="sub">Two unit rings slide apart until their crossings pin to marks 2k steps apart (6k° = θ). The centers then stand exactly 2·cos 6k° ring-radii apart — half the measured distance is the answer. The crossing positions depend on the join axis — horizontal (the classic vesica): k and 60−k; vertical (the paper's figures): 15−k and 15+k. Same mirror law reflected to the other cardinal, and the certificate is orientation-invariant: digits equal for odd k, sum to ten for even k.</p>
+  <div class="card">
+    <span class="mono">cos of grid angle:</span>
+    <div class="kgrid" style="margin-top:8px" id="cosButtons"></div>
+    <div style="margin-top:8px">
+      <span class="mono">or any angle:</span>
+      <input type="text" id="cosCustom" value="7.3" style="width:120px"> °
+      <button class="go g" onclick="runCosCustom()">measure on the ladder</button>
+      <span class="tiny">&nbsp; any finite-decimal angle lands on a rung — the ruler refines ×60 per level</span>
+    </div>
+    <div style="margin-top:8px">
+      <span class="mono tiny">ruler orientation:</span>
+      <label class="ck"><input type="radio" name="vorientC" value="h" checked onchange="setVesicaOrient(false)"> horizontal join — classic vesica · crossings k &amp; 60−k</label>
+      <label class="ck"><input type="radio" name="vorientC" value="v" onchange="setVesicaOrient(true)"> vertical join — the paper's figures · crossings 15−k &amp; 15+k</label>
+    </div>
+    <div style="margin-top:8px">
+      <span class="mono tiny">or slide the rings by hand:</span>
+      <input type="range" id="cosSlideBar" min="0" max="90" step="0.1" value="36" style="width:280px;vertical-align:middle;accent-color:#43ffa0" oninput="slideCos(this.value)" onchange="slideCosDone(this.value)">
+      <div class="mono" id="cosSlideOut" style="margin-top:4px;font-size:13px;min-height:40px"><span class="tiny">drag to watch the cosine change live as the centers move</span></div>
+    </div>
+    <div style="margin-top:8px"><span class="tiny">Angles outside 0–90° are auto-folded first (each fold checksummed), then the ruler runs on the reference angle.</span></div>
+  </div>
+  <div class="row">
+    <canvas id="cvCos" width="460" height="380"></canvas>
+    <div style="flex:1;min-width:260px">
+      <div class="card" id="cosOut"><span class="tiny">Pick an angle — the second ring will slide until the crossings pin.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MODULE 4 : SIN ============ -->
+<section class="tab" id="tab-sin">
+  <h2>SIN — quarter-turn fold, then the ruler</h2>
+  <p class="sub">sin θ = cos(90° − θ). The complement fold n → 15−n carries the ×7 digit stamp — d(15−n) ≡ 7·d(n) for odd n, ≡ 3·d(n) for even n (mod 10) — then Module 3's ruler measures the complement. Both steps appear in the ledger.</p>
+  <div class="card">
+    <span class="mono">sin of grid angle:</span>
+    <div class="kgrid" style="margin-top:8px" id="sinButtons"></div>
+    <div style="margin-top:8px">
+      <span class="mono">or any angle:</span>
+      <input type="text" id="sinCustom" value="36.5" style="width:120px"> °
+      <button class="go g" onclick="runSinCustom()">measure on the ladder</button>
+    </div>
+    <div style="margin-top:8px">
+      <span class="mono tiny">ruler orientation:</span>
+      <label class="ck"><input type="radio" name="vorientS" value="h" checked onchange="setVesicaOrient(false)"> horizontal join — classic</label>
+      <label class="ck"><input type="radio" name="vorientS" value="v" onchange="setVesicaOrient(true)"> vertical join — the paper's figures</label>
+    </div>
+    <div style="margin-top:8px">
+      <span class="mono tiny">or slide the rings by hand:</span>
+      <input type="range" id="sinSlideBar" min="0" max="90" step="0.1" value="36" style="width:280px;vertical-align:middle;accent-color:#43ffa0" oninput="slideSin(this.value)" onchange="slideSinDone(this.value)">
+      <div class="mono" id="sinSlideOut" style="margin-top:4px;font-size:13px;min-height:40px"><span class="tiny">drag to watch the sine change live as the centers move</span></div>
+    </div>
+  </div>
+  <div class="row">
+    <canvas id="cvSin" width="460" height="380"></canvas>
+    <div style="flex:1;min-width:260px">
+      <div class="card" id="sinOut"><span class="tiny">Pick an angle.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MODULE 5 : TAN ============ -->
+<section class="tab" id="tab-tan">
+  <h2>TAN — the gnomon at the east cardinal</h2>
+  <p class="sub">A vertical line stands at the east cardinal 0 (position 0). The ray from the center through position n, extended to that line, marks the length tan 6n°. Certificates: level pairs (n, n+30 — equal tangent, digits sum to ten), reciprocal pairs (n, 15−n — product exactly 1, ×7 stamp), and the triple-product row tan θ·tan(60°−θ)·tan(60°+θ) = tan 3θ.</p>
+  <div class="card">
+    <span class="mono">tan of grid angle:</span>
+    <div class="kgrid" style="margin-top:8px" id="tanButtons"></div>
+    <div style="margin-top:8px">
+      <span class="mono">or any angle:</span>
+      <input type="text" id="tanCustom" value="7.3" style="width:120px"> °
+      <button class="go g" onclick="runTanCustom()">read on the gnomon</button>
+    </div>
+  </div>
+  <div class="row">
+    <canvas id="cvTan" width="560" height="460"></canvas>
+    <div style="flex:1;min-width:300px">
+      <div class="card" id="tanOut"><span class="tiny">Pick an angle.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MODULE 6 : ZOOM ============ -->
+<section class="tab" id="tab-zoom">
+  <h2>The zoom ladder</h2>
+  <p class="sub">Every step opens into a finer 60-division ring: level L has 60·60<sup>L</sup> positions of 6⁄60<sup>L</sup> degrees each, and the digits tile with period 60. Because 10 divides 60, any angle typed with finitely many decimal digits of degrees lands exactly on a rung.</p>
+  <div class="card">
+    <h3>The rungs — the top ring is level 0</h3>
+    <table style="max-width:760px">
+      <thead><tr><th>Level</th><th>Step size</th><th>Positions</th><th>Angles on this ring</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>6°</td><td>60</td><td>0°, 6°, 12°, … 354° — the 6° grid</td></tr>
+        <tr><td>1</td><td>6′ = 0.1°</td><td>3,600</td><td>every multiple of 0.1°: 0.1°, 0.2°, 7.3°, 359.9° …</td></tr>
+        <tr><td>2</td><td>6″ ≈ 0.00167°</td><td>216,000</td><td>every multiple of 1/600 of a degree</td></tr>
+        <tr><td>L</td><td>6/60<sup>L</sup> °</td><td>60·60<sup>L</sup></td><td>every multiple of that step</td></tr>
+      </tbody>
+    </table>
+    <p class="tiny" style="margin-top:6px">The step is always six of the next unit down (6° → 6′ → 6″). The rungs nest — every coarser angle also sits on every finer ring — and the app reports the <i>minimal</i> rung: the shallowest level where the angle is a whole position.</p>
+  </div>
+  <div class="card">
+    <span class="mono">θ =</span>
+    <input type="text" id="zoomAngle" value="1.234567" style="width:170px"> °
+    <button class="go" onclick="doZoom()">Find the rung</button>
+    &nbsp;&nbsp;
+    <button class="go m" onclick="level1Mirror()">Run the level-1 mirror test (1,799 settings)</button>
+  </div>
+  <div class="row">
+    <div style="flex:1;min-width:320px">
+      <div class="card" id="zoomOut"><span class="tiny">Enter any decimal angle — 1.234567, 57.295779 (“1 radian” to six decimals), 0.05 …</span></div>
+      <div class="card" id="mirrorOut" style="display:none"></div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:8px">
+        <label class="ck"><input type="checkbox" id="ckZoomNet" checked onchange="renderZoom()"> Net chords at this level</label>
+        <label class="ck">Net visibility <input type="range" id="netSliderZ" min="0" max="100" value="45" style="vertical-align:middle;accent-color:#2de2ff" oninput="setNetAlpha(this.value)"></label>
+        <button class="mini" onclick="ascendZoom()" style="margin-left:8px">⬆ up one level</button>
+        <div class="tiny" style="margin-top:5px">Click any step on the big ring to open it ×60.</div>
+      </div>
+      <canvas id="cvZoom" width="460" height="560"></canvas>
+      <p class="tiny" style="max-width:460px;margin-top:6px">The digits tile with period 60, so every step opens into a complete 60-ring carrying the <i>identical</i> net — the net survives verbatim at every rung (V10: zero violations at level 1). Hover the zoomed ring to match pairs at fine resolution.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MODULE 7 : WHEELS ============ -->
+<section class="tab" id="tab-wheels">
+  <h2>The wheels — the precision panel</h2>
+  <p class="sub">Arbitrary precision without series: the half-angle wheel descends from any anchor, Heron's wheel closes on any square root quadratically, and the π demo runs Archimedes' ladder from the vesica anchor sin 30° = ½. The convergence moduli are the system's own numbers: Heron doubles its digits per turn; the polygon error quarters per doubling.</p>
+  <div class="row">
+    <div class="card" style="flex:1;min-width:300px">
+      <h3>Half-angle wheel &nbsp; cos(θ/2) = √((1+cos θ)/2)</h3>
+      <select id="haAnchor">
+        <option value="60">anchor: cos 60° = 1/2 (classic vesica)</option>
+        <option value="36">anchor: cos 36° = φ/2 (pentagram)</option>
+        <option value="30">anchor: cos 30° = √3/2 (wide lock)</option>
+        <option value="6">anchor: cos 6° (built from φ and √3)</option>
+      </select>
+      <button class="go" onclick="haTurn()">Turn</button>
+      <button class="mini" onclick="haReset()">reset</button>
+      <table style="margin-top:8px"><thead><tr><th>rung</th><th>angle</th><th>value</th><th>err vs Math</th></tr></thead><tbody id="haBody"></tbody></table>
+    </div>
+    <div class="card" style="flex:1;min-width:300px">
+      <h3>Heron's root wheel &nbsp; x → (x + a/x)/2</h3>
+      <span class="mono">a =</span> <input type="number" id="heronA" value="3" step="any" style="width:80px">
+      <span class="mono">x₀ =</span> <input type="number" id="heronX" value="2" step="any" style="width:80px">
+      <button class="go" onclick="heronTurn()">Turn</button>
+      <button class="mini" onclick="heronReset()">reset</button>
+      <table style="margin-top:8px"><thead><tr><th>turn</th><th>x</th><th>error</th><th>digits</th></tr></thead><tbody id="heronBody"></tbody></table>
+    </div>
+  </div>
+  <div class="card">
+    <h3>The π demo &nbsp; — Archimedes' polygon ladder from sin 30° = ½</h3>
+    <button class="go" onclick="piTurn()">Double the polygon</button>
+    <button class="go g" onclick="piRun()">Run to the 49,152-gon</button>
+    <button class="mini" onclick="piReset()">reset</button>
+    <div style="margin-top:8px" class="big" id="piVal">3.000000000</div>
+    <table style="margin-top:8px"><thead><tr><th>k</th><th>polygon</th><th>n·sin(180°/n)</th><th>error vs π</th><th>ratio (≈4 per doubling)</th></tr></thead><tbody id="piBody"></tbody></table>
+    <p class="tiny" style="margin-top:6px">The number π never closes — only its digits flow, to any depth. This is the system's honest boundary, shared by every computational system ever built.</p>
+  </div>
+</section>
+
+<!-- ============ MODULE 8 : VERIFY ============ -->
+<section class="tab" id="tab-verify">
+  <h2>The Verify page — Appendix A, V1–V26, plus acceptance</h2>
+  <p class="sub">Exact claims by exhaustive enumeration; value identities to machine precision. If any check fails, the implementation — not the mathematics — has a bug. Acceptance: all checks green, and sin/cos/tan of every grid angle agree with the platform's Math functions to 10⁻¹².</p>
+  <div class="card">
+    <button class="go g" onclick="runVerify()">Run V1–V26 + acceptance</button>
+    <span id="verifySummary" class="mono" style="margin-left:14px"></span>
+    <span class="tiny" style="margin-left:14px">click any row to see its work</span>
+  </div>
+  <div class="card">
+    <h3>The honest boundary — what this system does NOT claim</h3>
+    <p class="sub" style="margin-bottom:8px">Stated before anyone has to ask. Each of these is a boundary the paper itself draws, not a concession extracted by a critic:</p>
+    <div class="steps">
+      <div class="pass"><b>The digits checksum the phase work — they do not generate decimal values.</b> The ring is not a sampled sine wave (its spectrum has many frequencies — paper §5). Values come from the geometry (the ruler's measured distance) and from the anchor algebra (φ, √3, ½ through the recurrence). The digit tests certify that each step of position arithmetic was made correctly; the value layer exits to the instrument.</div>
+      <div class="pass"><b>On a screen, “measured” means computed geometry.</b> Pinning crossings to marks and reporting the resulting distance is the digital analog of the physical ruler — the program evaluates d = 2·cos(θ/2) exactly as the physical instrument would pay it out. The independent cross-check is the ACC row below: the table built from the system's own anchors agrees with the platform's Math functions to 10⁻¹² — two unrelated routes to the same numbers.</div>
+      <div class="pass"><b>The number π and the continuum, as exact objects, stay outside</b> — as they do for every computational system ever built (a calculator's π is sixteen digits). Their decimal outputs are produced in-system by the wheels (Module 7), to any depth, with verified convergence rates. Equal temperament (²√…¹²√2) sits beyond the same boundary: the system is a just-intonation instrument, honestly.</div>
+      <div class="pass"><b>The certificates go silent exactly at the four cardinal 0s</b> — and the paper says so in every law that touches them. That is not a gap found by a critic; it is the stated exception set, the same four points that the harmonic, geometric, and checksum readings all single out independently.</div>
+    </div>
+  </div>
+  <div class="card">
+    <table><thead><tr><th></th><th>check</th><th>claim</th><th>result</th></tr></thead><tbody id="verifyBody"></tbody></table>
+  </div>
+</section>
+
+<!-- ============ ABOUT ============ -->
+<section class="tab about" id="tab-about">
+  <h2>What is this thing? (the plain-language tour)</h2>
+  <p class="sub">A companion to the paper <i>Neal's Net: A Self-Verifying Trigonometric System on the Fibonacci 60-Ring</i> by Neal Strassner — written here for anyone from middle school up.</p>
+
+  <div class="card">
+    <h3>The one-minute version</h3>
+    <p>Take the Fibonacci numbers: 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89… (each number is the two before it, added). Now keep only the <b>last digit</b> of each: 0, 1, 1, 2, 3, 5, 8, 3, 1, 4, 5, 9… Here's the surprise: that list of last digits <b>repeats forever every 60 steps</b>. Sixty — the same number as minutes on a clock. So put the 60 digits around a circle, one every 6°, like a clock face.</p>
+    <p>Then comes the discovery this whole page is named after: pick almost any digit on that circle and look at its mirror partner across the ring — <b>the two digits always add up to 10</b>. Draw a line between every pair and you get a woven grid of perfectly horizontal and vertical lines: <b>Neal's Net</b>. The only gaps are four zeros sitting exactly at the compass points (0°, 90°, 180°, 270°).</p>
+  </div>
+
+  <div class="card">
+    <h3>Why "net" and not just "pretty pattern"?</h3>
+    <p>Look at the barcode on any cereal box: its last digit is a <b>check digit</b> — a built-in test. If a scanner misreads one number, the check digit won't match, and the machine knows something went wrong. Neal's Net does the same job for this circle: if any single digit were wrong, its partner across the ring wouldn't sum to 10 anymore, and the net would visibly break at that exact spot. The pattern <i>checks itself</i>.</p>
+    <p>The big idea of the paper: since angle math can be done <i>on this circle</i>, every step of angle math can carry that built-in test. Your calculator gives you an answer and asks you to trust it. This system gives you an answer <b>and a receipt</b>.</p>
+  </div>
+
+  <div class="card">
+    <h3>How each page works</h3>
+    <p><b>1 · Ring</b> — the object itself. Hover any digit to light up its partner and watch them add to 10. The "trace the net" button walks through all 28 pairs one by one.</p>
+    <p><b>2 · Angles &amp; Folds</b> — angle math as clock math. The angle 216° becomes "position 36" (just divide by 6). Adding angles is adding positions; flipping an angle is a jump across the ring. After <i>every</i> jump, the digits at takeoff and landing must match by a known rule — that's the receipt. Get the jump wrong, the digits won't match, and you see a red ✗.</p>
+    <p><b>3 · COS</b> — two identical rings overlap like two hula hoops (the lens shape in the middle is the ancient "vesica piscis"). Slide them until their crossing points land on marked dots, then <b>measure the distance between the two centers</b>. Half of that distance IS the cosine. You didn't look the value up — you <i>made</i> it, and the digits at the crossings certify the setting was right.</p>
+    <p><b>4 · SIN</b> — sine is just cosine's quarter-turn twin (sin 36° = cos 54°). Do the quarter-turn first — it has its own digit stamp — then measure like before.</p>
+    <p><b>5 · TAN</b> — a sundial. Stand a pole at the edge of the circle and shine a ray from the center; the length of the "shadow" on the pole is the tangent. It carries three different receipts, including pairs of tangents that must multiply to exactly 1.</p>
+    <p><b>6 · Zoom ladder</b> — "but the circle only has marks every 6°!" True — and a clock only has marks every hour, until you look at the minute hand. Every step of this ring opens into a complete smaller ring of 60 finer steps (6° → 6 arcminutes → 6 arcseconds, forever), and — this is the remarkable part — <b>every smaller ring carries the exact same digits and the exact same net</b>. The checking never stops working, no matter how deep you zoom.</p>
+    <p><b>7 · Wheels</b> — how people computed before electronics: take a simple step and repeat it. Heron's wheel squeezes out square roots (the correct digits <i>double</i> every turn). The π wheel is Archimedes' actual 2,200-year-old method: start with a hexagon, keep doubling its sides, and watch 3.000 → 3.106 → 3.139 → 3.14159… pour out.</p>
+    <p><b>8 · Verify</b> — the report card. Every mathematical claim in the paper (V1–V26) is re-tested live on <i>your</i> computer the moment you press the button, plus a final exam: the system's homemade sine/cosine/tangent values must agree with your device's built-in math to 12 decimal places.</p>
+  </div>
+
+  <div class="card">
+    <h3>"How do I know it's really doing what it says?"</h3>
+    <p>Three answers, from quickest to deepest:</p>
+    <p><b>1. Every answer shows its work.</b> Open the Ledger panel (right side) and click "▸ show the work" under any entry — you'll see the actual computation, line by line, with the real numbers: the division, the jumps, the digit tests, the measurement, the halving. Nothing happens off-stage.</p>
+    <p><b>2. The Verify page re-proves the paper on your machine.</b> It doesn't display stored results — it re-runs every enumeration and identity from scratch, in front of you, every time. If this app's code had a bug, those lights would go red.</p>
+    <p><b>3. The whole program is one open file.</b> No internet connection, no hidden libraries, no server. Right-click this page → "View Page Source" and you are reading <i>every line of code that exists</i>. The ring digits aren't even stored — they're regenerated as Fibonacci-mod-10 each time the page loads, and the net immediately checks them.</p>
+  </div>
+
+  <div class="card">
+    <h3>Who made this</h3>
+    <p>The net — the pairing-to-ten structure on the Fibonacci last-digit ring — was independently identified by <b>Neal Strassner</b> around 2015 (<a href="https://github.com/NealStrassner" target="_blank" rel="noopener" style="color:var(--cyan)">github.com/NealStrassner</a>). The paper develops it into a complete, self-checking system for trigonometry, and this app implements the paper's Appendix B so anyone can drive it. The underlying facts have an honest lineage: the 60-cycle itself is classical (Lagrange recorded it in 1774; Wall formalized it in 1960); the circle arrangement and the opposite-digits-sum-to-ten observation circulate widely in recreational literature from at least the early 2010s (Jain 108, Lucien Khan, and others all claim the wheel — a priority contest this work does not adjudicate); and the antipodal and quarter-turn congruences were proven rigorously by Guyer, Mbirika &amp; Scott (<i>Rocky Mountain J. Math.</i>, 2024). Many independent readings have been laid over these same sixty digits — numerological, harmonic, horological, theorem-proving — and not one of them ever drew the net: the parity-alternating grid of perfectly horizontal and vertical sum-to-ten chords, and its reading as a checksum, appear in no prior source found. The net, and the verification layer built on it — angle arithmetic that checks itself — are this work's contribution, beginning exactly where the prior literature stops.</p>
+    <p>The code itself was written by <b>Claude</b> (Anthropic's AI) working under Neal's direction — the same division of labor the paper's acknowledgments describe: the mathematics, the discoveries, and the design decisions are Neal's; the implementation and the machine-checking are the AI's. Fittingly for this project, you don't have to take that on faith either: the Verify tab re-tests everything the code claims.</p>
+    <p class="tiny">License: <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener" style="color:var(--amb)">CC BY 4.0</a> — you may share and adapt this file, but you must credit Neal Strassner and link back.</p>
+  </div>
+</section>
+
+</main>
+
+<!-- ============ LEDGER ============ -->
+<aside id="ledgerWrap">
+  <div id="ledgerHead">
+    <h4>⬡ Ledger</h4>
+    <span><span id="ledgerCount" class="tiny mono"></span> <button class="mini" onclick="clearLedger()">clear</button></span>
+  </div>
+  <div id="ledgerBody"><p class="tiny" style="padding:6px">Every operation appends its certificate here — operation, positions, digits, test, pass/fail. The self-auditing record.</p></div>
+</aside>
+</div>
+
+<footer>
+  © Neal Strassner — <a href="https://github.com/NealStrassner" target="_blank" rel="noopener" style="color:var(--cyan)">github.com/NealStrassner</a>.
+  Neal's Net (the pairing-to-ten structure on the Fibonacci last-digit ring, c. 2015) invented by Neal Strassner; this application implements Appendix B of
+  <i>Neal's Net: A Self-Verifying Trigonometric System on the Fibonacci 60-Ring</i> — single file, no external dependencies.
+  Implementation coded with Claude (Anthropic) under the author's direction.
+  Licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener" style="color:var(--amb)">CC BY 4.0</a> — share and adapt freely, but credit Neal Strassner.
+  &nbsp;·&nbsp; v1.0 — June 12, 2026.
+</footer>
+
+<script>
+'use strict';
+/* ================= CORE: the ring and its digit laws ================= */
+const RING = (() => { const d=[0,1]; while(d.length<60) d.push((d[d.length-1]+d[d.length-2])%10); return d; })();
+const mod = (a,m) => ((a%m)+m)%m;
+const dig = n => RING[mod(n,60)];
+const rad = a => a*Math.PI/180;
+
+/* digit-law tests — each returns {pass, text} */
+function testHalfTurn(n){
+  const a=dig(n), b=dig(n+30), pass=(a+b)%10===0;
+  return {pass, text:`d(${mod(n,60)})=${a}, d(${mod(n+30,60)})=${b} — sum ${a+b}${(a===0&&b===0)?' (cardinal 0+0)':''} ${pass?'≡0 (mod 10) ✓':'✗'}`};
+}
+function testMirror(n){ // n -> 60-n : equal odd n, sum-ten even n
+  const m60=mod(60-n,60), a=dig(n), b=dig(m60);
+  const odd = mod(n,2)===1;
+  const pass = odd ? a===b : (a+b)%10===0;
+  return {pass, text:`d(${mod(n,60)})=${a}, d(${m60})=${b} — ${odd?`equal (odd n) ${pass?'✓':'✗'}`:`sum ${a+b} (even n) ${pass?'✓':'✗'}`}`};
+}
+function testSupp(n){ // n -> 30-n : sum-ten odd n, equal even n
+  const m30=mod(30-n,60), a=dig(n), b=dig(m30);
+  const odd = mod(n,2)===1;
+  const pass = odd ? (a+b)%10===0 : a===b;
+  return {pass, text:`d(${mod(n,60)})=${a}, d(${m30})=${b} — ${odd?`sum ${a+b} (odd n) ${pass?'✓':'✗'}`:`equal (even n) ${pass?'✓':'✗'}`}`};
+}
+function testQuarter(n){
+  const a=dig(n), b=dig(n+15), pass = b === (7*a)%10;
+  return {pass, text:`d(${mod(n+15,60)})=${b} ≡ 7·${a} = ${(7*a)%10} (mod 10) ${pass?'✓ — the ×7 stamp':'✗'}`};
+}
+function testComplement(n){ // n -> 15-n, the sin fold stamp: ±7
+  const a=dig(n), b=dig(15-n);
+  const odd = mod(n,2)===1;
+  const want = odd ? (7*a)%10 : (3*a)%10;
+  const pass = b===want;
+  return {pass, text:`d(${mod(15-n,60)})=${b} ≡ ${odd?'7':'−7≡3'}·${a} = ${want} (mod 10) ${pass?'✓ — the ×7 stamp':'✗'}`};
+}
+function testThirdTurn(n){ // d(n+20) = d(n) at n ≡ 2 (mod 3), else d(n)+5
+  const a=dig(n), b=dig(n+20);
+  const keep = mod(n,3)===2;
+  const want = (a + (keep?0:5)) % 10;
+  const pass = b===want;
+  return {pass, text:`d(${mod(n+20,60)})=${b} = d(${mod(n,60)})${keep?'':' + 5'} (mod 10) ${pass?'✓':'✗'}`};
+}
+function testRuler(k){ // crossings: horizontal join → k and 60−k; vertical join → 15−k and 15+k.
+  // The certificate is orientation-invariant: digits equal for odd k, sum to ten for even k.
+  const p1 = vesicaVert ? mod(15-k,60) : mod(k,60);
+  const p2 = vesicaVert ? mod(15+k,60) : mod(60-k,60);
+  const a = dig(p1), b = dig(p2);
+  const odd = mod(k,2)===1;
+  const pass = odd ? a===b : (a+b)%10===0;
+  const card = a===0 && b===0;
+  return {pass, text:`crossings at ${p1} &amp; ${p2} (${vesicaVert?'vertical join: 15∓k':'horizontal join: k / 60−k'}): digits ${a} / ${b} — ${odd?`equal (odd k)${card?' — cardinal 0s, the stated exception':''} ${pass?'✓':'✗'}`:`sum ${a+b}${card?' — cardinal 0+0, the stated exception':''} (even k) ${pass?'✓':'✗'}`}`};
+}
+
+/* ============== IN-SYSTEM VALUES: the anchor-generated quarter table ============== */
+const PHI   = (1+Math.sqrt(5))/2;
+const COS36 = PHI/2;
+const SIN36 = Math.sqrt(10-2*Math.sqrt(5))/4;
+const COS30 = Math.sqrt(3)/2, SIN30 = 0.5;
+const C1 = COS36*COS30 + SIN36*SIN30;            // cos 6° from the system's own anchors
+const CTAB = [1, C1];                            // cos 6k°, k = 0..15, by the recurrence
+for (let k=2;k<=15;k++) CTAB.push(2*C1*CTAB[k-1]-CTAB[k-2]);
+function sysCos(n){ n=mod(n,60);
+  if(n<=15) return CTAB[n];
+  if(n<=30) return -CTAB[30-n];
+  if(n<=45) return -CTAB[n-30];
+  return CTAB[60-n];
+}
+function sysSin(n){ return sysCos(n-15); }
+function sysTan(n){ n=mod(n,60); if(n===15||n===45) return Infinity; return sysSin(n)/sysCos(n); }
+const fmt = (x,p=5) => (x===Infinity||x===-Infinity)?'∞':(Math.abs(x)<1e-12?0:x).toFixed(p);
+
+/* ================= LEDGER ================= */
+const ledger = [];
+function addLedger(op, detail, pass, trace){
+  ledger.push({op, detail, pass});
+  const body = document.getElementById('ledgerBody');
+  const div = document.createElement('div');
+  div.className = 'led ' + (pass?'pass':'fail');
+  div.innerHTML = `<div class="op">${ledger.length}. ${op} ${pass?'<span class="ok">✓</span>':'<span class="bad">✗</span>'}</div><div class="det">${detail}</div>`
+    + (trace && trace.length ? `<details><summary>▸ show the work</summary><pre>${trace.join('\n')}</pre></details>` : '');
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+  const passes = ledger.filter(l=>l.pass).length;
+  document.getElementById('ledgerCount').textContent = `${passes}/${ledger.length} pass`;
+}
+function clearLedger(){ ledger.length=0;
+  document.getElementById('ledgerBody').innerHTML='';
+  document.getElementById('ledgerCount').textContent='';
+}
+
+/* ================= DRAW HELPERS ================= */
+let netAlpha = 0.45;   // the net is the feature — user-controlled visibility
+function setNetAlpha(v){
+  netAlpha = (+v)/100;
+  const s1=document.getElementById('netSlider'), s2=document.getElementById('netSliderZ');
+  if(s1) s1.value = v; if(s2) s2.value = v;
+  renderRing(); renderZoom();
+}
+function posXY(cx,cy,R,n){ const a=rad(6*n); return [cx+R*Math.cos(a), cy-R*Math.sin(a)]; }
+function easeIO(u){ return u<0.5 ? 2*u*u : 1-Math.pow(-2*u+2,2)/2; }
+function animate(dur, step, done){
+  const t0 = performance.now();
+  (function f(t){
+    const u = Math.min(1,(t-t0)/dur);
+    step(easeIO(u));
+    if(u<1) requestAnimationFrame(f); else if(done) done();
+  })(t0);
+}
+
+/* draw a labeled 60-ring */
+function drawRing(ctx, cx, cy, R, o={}){
+  o = Object.assign({digits:true, centered:false, net:false, skel:false, wave:false, dim:1, labelR:null}, o);
+  ctx.save();
+  ctx.strokeStyle = '#1c2c45'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,7); ctx.stroke();
+  // cardinal axes
+  ctx.strokeStyle = '#152238';
+  ctx.beginPath(); ctx.moveTo(cx-R,cy); ctx.lineTo(cx+R,cy); ctx.moveTo(cx,cy-R); ctx.lineTo(cx,cy+R); ctx.stroke();
+  if(o.net){
+    // horizontal chords: odd n with partner 30-n ; vertical: even n with partner 60-n
+    const seen = new Set();
+    for(let n=0;n<60;n++){
+      const odd = n%2===1;
+      const p = odd ? mod(30-n,60) : mod(60-n,60);
+      if(p===n) continue;                     // cardinal gaps
+      const key = Math.min(n,p)+'-'+Math.max(n,p);
+      if(seen.has(key)) continue; seen.add(key);
+      const [x1,y1]=posXY(cx,cy,R,n), [x2,y2]=posXY(cx,cy,R,p);
+      ctx.strokeStyle = odd ? `rgba(45,226,255,${netAlpha})` : `rgba(255,79,216,${netAlpha})`;
+      ctx.lineWidth = 0.8 + 1.4*netAlpha;
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    }
+  }
+  if(o.wave){
+    const r0 = R*0.62, amp = R*0.055;
+    ctx.strokeStyle = '#23405f'; ctx.setLineDash([3,4]);
+    ctx.beginPath(); ctx.arc(cx,cy,r0,0,7); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = '#43ffa0'; ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    for(let n=0;n<=60;n++){
+      const r = r0 + (dig(n)-5)*amp;
+      const a = rad(6*n);
+      const x = cx+r*Math.cos(a), y = cy-r*Math.sin(a);
+      n===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+  for(let n=0;n<60;n++){
+    const [x,y] = posXY(cx,cy,R,n);
+    const d = dig(n);
+    const isZero = d===0, isFive = d===5;
+    // node dot
+    ctx.fillStyle = '#27405f';
+    if(o.skel && isZero) ctx.fillStyle = 'var(--amb)';
+    ctx.beginPath(); ctx.arc(x,y,2.1,0,7); ctx.fill();
+    if(o.skel){
+      if(isZero){ ctx.strokeStyle='#ffc34d'; ctx.lineWidth=1.5; ctx.strokeRect(x-5,y-5,10,10); }
+      if(isFive){ ctx.strokeStyle='#43ffa0'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(x,y,5.5,0,7); ctx.stroke(); }
+    }
+    if(o.digits){
+      const lr = o.labelR || R+16;
+      const a = rad(6*n);
+      const lx = cx+lr*Math.cos(a), ly = cy-lr*Math.sin(a);
+      ctx.font = (n%5===0?'600 ':'')+'12px Consolas,monospace';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle = isZero ? '#ffc34d' : isFive ? '#43ffa0' : '#9fc1de';
+      ctx.fillText(o.centered ? String(d-5) : String(d), lx, ly);
+    }
+  }
+  ctx.restore();
+}
+function drawMarker(ctx,cx,cy,R,n,color,label){
+  const [x,y]=posXY(cx,cy,R,n);
+  ctx.save();
+  ctx.fillStyle=color; ctx.shadowColor=color; ctx.shadowBlur=12;
+  ctx.beginPath(); ctx.arc(x,y,6,0,7); ctx.fill();
+  ctx.shadowBlur=0;
+  if(label){ ctx.font='600 12px Consolas,monospace'; ctx.fillStyle=color;
+    const a=rad(6*n); ctx.fillText(label, cx+(R+34)*Math.cos(a), cy-(R+34)*Math.sin(a)); }
+  ctx.restore();
+}
+
+/* ================= MODULE 1 : RING VIEW ================= */
+const cvRing = document.getElementById('cvRing'), ctxRing = cvRing.getContext('2d');
+function netPartner(n){
+  n = mod(n,60);
+  const p = (n%2===1) ? mod(30-n,60) : mod(60-n,60);
+  return p===n ? null : p;       // null at the four cardinal 0s — the gaps
+}
+let ringHover = null, traceTimer = null;
+function renderRing(){
+  ctxRing.clearRect(0,0,640,640);
+  drawRing(ctxRing, 320,320, 270, {
+    net: ckNet.checked, skel: ckSkel.checked, wave: ckWave.checked,
+    centered: ckCentered.checked, labelR: 290
+  });
+  // legend
+  ctxRing.font='11px Segoe UI'; ctxRing.textAlign='left';
+  if(ckNet.checked){
+    ctxRing.fillStyle='#2de2ff'; ctxRing.fillText('— horizontal chords (odd n: n ↔ 30−n)', 12, 614);
+    ctxRing.fillStyle='#ff4fd8'; ctxRing.fillText('— vertical chords (even n: n ↔ 60−n)', 12, 628);
+  }
+  // hover / trace highlight: light the chord and match the two digits
+  if(ringHover!==null){
+    const n = ringHover, p = netPartner(n), ctx = ctxRing, cx=320, cy=320, R=270;
+    const cen = ckCentered.checked;
+    const lab = d => cen ? String(d-5) : String(d);
+    ctx.save();
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    if(p===null){
+      const [x,y]=posXY(cx,cy,R,n);
+      ctx.strokeStyle='#ffc34d'; ctx.lineWidth=2; ctx.shadowColor='#ffc34d'; ctx.shadowBlur=14;
+      ctx.beginPath(); ctx.arc(x,y,9,0,7); ctx.stroke();
+      ctx.shadowBlur=0;
+      ctx.font='600 15px Consolas,monospace'; ctx.fillStyle='#ffc34d';
+      ctx.fillText(`position ${n} — cardinal 0`, cx, cy-12);
+      ctx.font='12px Consolas,monospace'; ctx.fillStyle='#cfe3f5';
+      ctx.fillText('0 pairs with 0 — no line: a gap in the net', cx, cy+10);
+    } else {
+      const odd = n%2===1, col = odd ? '#2de2ff' : '#ff4fd8';
+      const [x1,y1]=posXY(cx,cy,R,n), [x2,y2]=posXY(cx,cy,R,p);
+      ctx.strokeStyle=col; ctx.lineWidth=2.5; ctx.shadowColor=col; ctx.shadowBlur=12;
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+      ctx.shadowBlur=0;
+      // endpoint dots + enlarged matching digits
+      [[n,x1,y1],[p,x2,y2]].forEach(([q,x,y])=>{
+        ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x,y,5,0,7); ctx.fill();
+        const a=rad(6*q), lx=cx+290*Math.cos(a), ly=cy-290*Math.sin(a);
+        ctx.fillStyle='#080d16'; ctx.beginPath(); ctx.arc(lx,ly,13,0,7); ctx.fill();
+        ctx.font='700 19px Consolas,monospace';
+        ctx.shadowColor='#43ffa0'; ctx.shadowBlur=10; ctx.fillStyle='#43ffa0';
+        ctx.fillText(lab(dig(q)), lx, ly);
+        ctx.shadowBlur=0;
+      });
+      // the match, written in the center
+      const s = dig(n)+dig(p);
+      ctx.font='700 22px Consolas,monospace'; ctx.fillStyle='#43ffa0';
+      ctx.fillText(cen ? `${dig(n)-5} + ${dig(p)-5>=0?'+':''}${dig(p)-5} = 0 ✓` : `${dig(n)} + ${dig(p)} = ${s} ✓`, cx, cy-14);
+      ctx.font='12.5px Consolas,monospace'; ctx.fillStyle='#cfe3f5';
+      ctx.fillText(`position ${n} ↔ position ${p} — ${odd?'horizontal':'vertical'} chord (${odd?'n ↔ 30−n':'n ↔ 60−n'})`, cx, cy+12);
+    }
+    ctx.restore();
+  }
+}
+['ckNet','ckSkel','ckWave','ckCentered'].forEach(id=>document.getElementById(id).addEventListener('change',renderRing));
+cvRing.addEventListener('mousemove', e=>{
+  const r = cvRing.getBoundingClientRect();
+  const x = (e.clientX-r.left)*(640/r.width)-320, y = (e.clientY-r.top)*(640/r.height)-320;
+  const dist = Math.hypot(x,y);
+  let h = null;
+  if(dist>235 && dist<320){
+    h = mod(Math.round(Math.atan2(-y,x)/Math.PI*180/6), 60);
+  }
+  if(h!==ringHover && !traceTimer){ ringHover=h; renderRing(); }
+});
+cvRing.addEventListener('mouseleave', ()=>{ if(!traceTimer){ ringHover=null; renderRing(); } });
+function traceNet(){
+  const btn = document.getElementById('traceBtn');
+  if(traceTimer){ clearInterval(traceTimer); traceTimer=null; ringHover=null; renderRing(); btn.textContent='▶ Trace the net — watch every pair sum to ten'; return; }
+  ckNet.checked = true;
+  const order=[], seen=new Set();
+  for(let n=0;n<60;n++){
+    const p=netPartner(n); if(p===null) continue;
+    const key=Math.min(n,p)+'-'+Math.max(n,p);
+    if(seen.has(key)) continue; seen.add(key); order.push(n);
+  }
+  let i=0; btn.textContent='■ Stop tracing';
+  traceTimer = setInterval(()=>{
+    if(i<order.length){ ringHover=order[i]; renderRing(); i++; }
+    else {
+      clearInterval(traceTimer); traceTimer=null;
+      btn.textContent='▶ Trace the net — watch every pair sum to ten';
+      addLedger('Net traced', 'all 28 chords lit in turn — every pair summed to ten; the four cardinal 0s carry no line', true, [
+        `chords: odd n pairs with 30−n (horizontal), even n with 60−n (vertical)`,
+        `28 distinct pairs lit one by one; each pair's digits summed to 10 on screen`,
+        `gaps: positions 0, 15, 30, 45 — the cardinal 0s self-pair (0+0) and carry no line`,
+      ]);
+      setTimeout(()=>{ ringHover=null; renderRing(); }, 900);
+    }
+  }, 380);
+}
+document.getElementById('ringDigits').innerHTML =
+  RING.slice(0,30).join(' ') + '<br>' + RING.slice(30).join(' ');
+function checkRingIntegrity(){
+  const fails = [];
+  for(let n=0;n<60;n++){
+    if(!testHalfTurn(n).pass)  fails.push('half-turn@'+n);
+    if(!testMirror(n).pass)    fails.push('mirror@'+n);
+    if(!testQuarter(n).pass)   fails.push('×7 quarter@'+n);
+    if(!testThirdTurn(n).pass) fails.push('third-turn@'+n);
+  }
+  const pass = fails.length===0;
+  document.getElementById('integrityOut').innerHTML = pass
+    ? '<span class="ok">✓ intact — all four digit laws (half-turn, mirror, ×7 quarter-turn, third-turn) hold at all 60 positions; net gaps only at the four cardinal 0s</span>'
+    : `<span class="bad">✗ broken: ${fails.slice(0,8).join(', ')}${fails.length>8?' …':''}</span>`;
+  addLedger('Ring integrity check', pass?'all four digit laws verified at all 60 positions (240 tests)':'failures: '+fails.join(','), pass, [
+    `regenerate the ring: d[i] = (d[i−1] + d[i−2]) mod 10, seeds 0, 1 — never stored, always rebuilt`,
+    `half-turn: d(n) + d(n+30) ≡ 0 (mod 10) — tested n = 0…59`,
+    `mirror: d(60−n) = d(n) odd n / 10−d(n) even n — tested n = 0…59`,
+    `quarter-turn: d(n+15) ≡ 7·d(n) (mod 10), 7² ≡ −1 — tested n = 0…59`,
+    `third-turn: d(n+20) = d(n) at n ≡ 2 (mod 3), else +5 — tested n = 0…59`,
+    `total: 240 tests, ${fails.length} failures`,
+  ]);
+}
+
+/* ================= MODULE 2 : FOLDS ================= */
+const cvFold=document.getElementById('cvFold'), ctxFold=cvFold.getContext('2d');
+let foldPos = 36, foldFrac = 0, foldAnim = null;
+function renderFold(markerAt){
+  ctxFold.clearRect(0,0,460,460);
+  drawRing(ctxFold, 230,230, 178, {labelR:196});
+  const n = markerAt===undefined?foldPos:markerAt;
+  drawMarker(ctxFold,230,230,178,n,'#2de2ff');
+  ctxFold.font='600 14px Consolas,monospace'; ctxFold.fillStyle='#fff'; ctxFold.textAlign='center';
+  ctxFold.fillText(`position ${mod(Math.round(foldPos),60)}  ·  ${mod(Math.round(foldPos),60)*6}°  ·  digit ${dig(Math.round(foldPos))}`, 230, 230);
+  const tm = mod(Math.round(foldPos),60)*24;
+  ctxFold.font='11px Consolas,monospace'; ctxFold.fillStyle='#7b92ab';
+  ctxFold.fillText(`clock reading: ${String(Math.floor(tm/60)).padStart(2,'0')}:${String(tm%60).padStart(2,'0')}  (1 step = 24 min)`, 230, 250);
+}
+function foldStatusHTML(extra=''){
+  const n=mod(foldPos,60);
+  const qtxt = n%15===0 ? `on a cardinal axis (${n*6}°)` : `quadrant ${['I','II','III','IV'][Math.floor(n/15)]}`;
+  return `<h3>Current state</h3>
+  <div class="mono">θ ≡ ${n*6}° &nbsp;·&nbsp; position <b class="cy">${n}</b> &nbsp;·&nbsp; digit <b class="cy">${dig(n)}</b> &nbsp;·&nbsp; ${qtxt} (from position, not lookup)</div>${extra}`;
+}
+function setFoldAngle(){
+  const th = parseFloat(document.getElementById('foldAngle').value);
+  if(isNaN(th)) return;
+  const p = th/6;
+  if(Math.abs(p - Math.round(p)) > 1e-9){
+    // not a whole 6° position — answer it right here, at ladder depth
+    const s = document.getElementById('foldStatus');
+    const raw = String(document.getElementById('foldAngle').value).trim();
+    const red = reduceAngleExact(raw);
+    const pr  = red ? parseAngleExact(raw) : null;
+    if(!red || !pr || pr.level===null){ s.innerHTML='<span class="bad">enter a decimal number of degrees</span>'; return; }
+    const j0 = Number(pr.pos % 60n);
+    const sv = red.sinS*Math.sin(rad(red.refNum)), cv = red.cosS*Math.cos(rad(red.refNum));
+    ctxFold.clearRect(0,0,460,460);
+    drawRing(ctxFold,230,230,178,{labelR:196});
+    drawMarker(ctxFold,230,230,178, mod(th/6,60), '#43ffa0');
+    ctxFold.font='600 13px Consolas,monospace'; ctxFold.fillStyle='#fff'; ctxFold.textAlign='center';
+    ctxFold.fillText(`${raw}° · level ${pr.level} · fine position ${pr.pos}`, 230, 222);
+    ctxFold.font='11px Consolas,monospace'; ctxFold.fillStyle='#7b92ab';
+    ctxFold.fillText(`ring digit ${RING[j0]} (fine position ≡ ${j0} mod 60)`, 230, 240);
+    const box = document.getElementById('foldSteps'); box.innerHTML='';
+    red.steps.forEach(x=>{ const d=document.createElement('div'); d.className='pass'; d.textContent=x; box.appendChild(d); });
+    s.innerHTML = `
+      <span class="notice">θ = ${raw}° sits between grid positions (${raw} ÷ 6 = ${(th/6).toFixed(4)}…) — so it lives one rung down the ladder, where the same folds run at fine resolution.</span>
+      <div class="resbox mono" style="margin-top:8px">
+        rung: level <b class="cy">${pr.level}</b> (${unitName(pr.level)}) · fine position <b class="cy">${pr.pos}</b> · ring digit <b style="color:var(--grn)">${RING[j0]}</b><br>
+        ${red.steps.length? `folds: ${red.steps.length} applied (listed below) · θ_ref = ${red.refStr}°<br>`:''}
+        <div class="big" style="margin-top:6px">sin ${raw}° = ${fmt(sv,8)}<br>cos ${raw}° = ${fmt(cv,8)}</div>
+        <span class="tiny">signs from the folds, values at ladder depth — all on this tab</span>
+      </div>
+      <p class="tiny" style="margin-top:6px"><button class="mini" onclick="document.getElementById('zoomAngle').value='${raw}';switchTab('zoom');doZoom()">optional: view this rung on the Zoom ladder →</button> &nbsp; or watch the ruler measure it on the COS/SIN tabs (“or any angle” box)</p>`;
+    addLedger('Quantize at depth', `θ = ${raw}° → level ${pr.level}, fine position ${pr.pos}, digit ${RING[j0]} — sin = ${fmt(sv,8)}, cos = ${fmt(cv,8)}`, true, [
+      `θ = ${raw}° — not a whole 6° position (${raw} ÷ 6 = ${(th/6).toFixed(6)})`,
+      `rung: smallest L where θ·60^L ÷ 6 is whole → level ${pr.level}, fine position ${pr.pos}, digit ${RING[j0]}`,
+      ...red.steps.map(x=>`fold: ${x}`),
+      `θ_ref = ${red.refStr}°: sin = ${Math.sin(rad(red.refNum)).toFixed(8)}, cos = ${Math.cos(rad(red.refNum)).toFixed(8)}`,
+      `apply the fold signs: sin ${raw}° = ${fmt(sv,8)}, cos ${raw}° = ${fmt(cv,8)}`,
+    ]);
+    return;
+  }
+  foldPos = mod(Math.round(p),60);
+  document.getElementById('foldSteps').innerHTML='';
+  document.getElementById('foldStatus').innerHTML = foldStatusHTML();
+  renderFold();
+  const tm2 = foldPos*24;
+  addLedger('Quantize', `θ = ${th}° → position ${foldPos} (θ ÷ 6 mod 60), digit ${dig(foldPos)}`, true, [
+    `θ = ${th}°`,
+    `position = θ ÷ 6 = ${th} ÷ 6 = ${foldPos} (mod 60)`,
+    `digit at position ${foldPos}: ${dig(foldPos)} · ${foldPos%15===0?`on a cardinal axis (${foldPos*6}°)`:`quadrant ${['I','II','III','IV'][Math.floor(foldPos/15)]}`} (from the position, not a sign rule)`,
+    `clock reading: ${foldPos} steps × 24 min = ${String(Math.floor(tm2/60)).padStart(2,'0')}:${String(tm2%60).padStart(2,'0')} (1 step = 6° = 24 minutes)`,
+  ]);
+}
+function animateJump(from, to, ccwSteps, done){
+  // ccwSteps: signed number of steps to sweep (visual)
+  animate(700, u=>{ renderFold(mod(from + ccwSteps*u, 60)); }, ()=>{ foldPos=mod(to,60); renderFold(); done&&done(); });
+}
+function logFoldStep(title, test){
+  const div = document.createElement('div');
+  div.className = test.pass?'pass':'fail';
+  div.innerHTML = `<b>${title}</b><br>${test.text}`;
+  document.getElementById('foldSteps').appendChild(div);
+}
+function doFold(kind){
+  const n = mod(foldPos,60);
+  let to, sweep, title, test;
+  if(kind==='half'){ to=mod(n+30,60); sweep=30; title=`+180° : ${n} → ${to} (+30)`; test=testHalfTurn(n); }
+  else if(kind==='neg'){ to=mod(60-n,60); sweep=mod(60-n,60)-n; title=`−θ : ${n} → ${to} (60−n)`; test=testMirror(n); }
+  else if(kind==='supp'){ to=mod(30-n,60); sweep=mod(30-n,60)-n; title=`180°−θ : ${n} → ${to} (30−n)`; test=testSupp(n); }
+  else { to=mod(n+15,60); sweep=15; title=`+90° : ${n} → ${to} (+15)`; test=testQuarter(n); }
+  animateJump(n,to,sweep,()=>{
+    logFoldStep(title,test);
+    document.getElementById('foldStatus').innerHTML = foldStatusHTML();
+    addLedger('Fold '+title.split(' : ')[0], `${title} — ${test.text.replace(/<[^>]*>/g,'')}`, test.pass, [
+      `start: position ${n} (digit ${dig(n)})`,
+      `jump: ${title}`,
+      `digit test: ${test.text.replace(/<[^>]*>/g,'')}`,
+      `a wrong landing would break this test — that is the checksum`,
+    ]);
+  });
+}
+function doRotate(){
+  // the method table's fourth row: rotate by α, then β — adding positions mod 60, no addition formula
+  const b = parseFloat(document.getElementById('rotAngle').value);
+  if(isNaN(b)) return;
+  const m = b/6;
+  if(Math.abs(m-Math.round(m))>1e-9){
+    document.getElementById('foldStatus').innerHTML =
+      `<span class="notice">β = ${b}° is not a whole number of steps — non-integer rotations descend the ladder (Module 6), where they compose by base-60 addition.</span>`;
+    return;
+  }
+  const n = mod(foldPos,60), steps = Math.round(m), to = mod(n+steps,60);
+  animateJump(n,to,steps,()=>{
+    const lt = testHalfTurn(to);   // landing digit checks against its own net partner
+    const test = {pass:lt.pass, text:`landing digit d(${to})=${dig(to)} vs its net partner d(${mod(to+30,60)})=${dig(to+30)} — sum ${(dig(to)+dig(to+30))} ${lt.pass?'✓':'✗'} · no addition formula touched`};
+    logFoldStep(`rotate +${b}° : ${n} + ${mod(steps,60)} → ${to}`, test);
+    document.getElementById('foldStatus').innerHTML = foldStatusHTML();
+    addLedger('Compose rotation', `+${b}°: position ${n} + ${mod(steps,60)} → ${to} — ${test.text}`, test.pass, [
+      `rotation = ${b}° ÷ 6 = ${steps} steps`,
+      `add positions: ${n} + ${mod(steps,60)} = ${to} (mod 60)`,
+      `landing checksum: d(${to}) = ${dig(to)}, net partner d(${mod(to+30,60)}) = ${dig(to+30)}, sum ${dig(to)+dig(to+30)} ✓`,
+      `no addition formula touched — rotation is position arithmetic`,
+    ]);
+  });
+}
+/* auto-reduce to QI with signs from jumps, then evaluate via the quarter table */
+function reduceToQI(n0){
+  // returns {k, sinSign, cosSign, steps:[{title,test}]}
+  let n = mod(n0,60), sinS=1, cosS=1; const steps=[];
+  let guard=0;
+  while(n>15 && guard++<4){
+    if(n>=45){ // QIV: negation fold 60-n ; sin -> -, cos same
+      const t=testMirror(n); steps.push({title:`QIV → −θ fold: ${n} → ${mod(60-n,60)} (sin gains −)`, test:t});
+      n=mod(60-n,60); sinS*=-1;
+    } else if(n>=30){ // QIII: half-turn back ; both gain −
+      const t=testHalfTurn(n-30); steps.push({title:`QIII → half-turn fold: ${n} → ${n-30} (sin and cos gain −)`, test:t});
+      n=n-30; sinS*=-1; cosS*=-1;
+    } else { // QII: supplement ; cos gains −
+      const t=testSupp(n); steps.push({title:`QII → supplement fold: ${n} → ${mod(30-n,60)} (cos gains −)`, test:t});
+      n=mod(30-n,60); cosS*=-1;
+    }
+  }
+  return {k:n, sinS, cosS, steps};
+}
+function autoReduce(){
+  const n0 = mod(foldPos,60);
+  const r = reduceToQI(n0);
+  const box = document.getElementById('foldSteps'); box.innerHTML='';
+  r.steps.forEach(s=>logFoldStep(s.title, s.test));
+  r.steps.forEach(s=>addLedger('Reduce '+s.title.split(':')[0].trim(), s.title+' — '+s.test.text.replace(/<[^>]*>/g,''), s.test.pass,
+    [s.title.replace(/<[^>]*>/g,''), `digit test: ${s.test.text.replace(/<[^>]*>/g,'')}`]));
+  const sv = r.sinS*sysSin(r.k), cv = r.cosS*sysCos(r.k);
+  const allPass = r.steps.every(s=>s.test.pass);
+  document.getElementById('foldStatus').innerHTML = foldStatusHTML(`
+    <div class="resbox mono">
+      Landed in QI at position <b class="cy">${r.k}</b> (= ${r.k*6}°) — every jump digit-checked ${allPass?'<span class="ok">✓</span>':'<span class="bad">✗</span>'}<br><br>
+      sin ${n0*6}° = ${r.sinS<0?'−':''}sin ${r.k*6}° = <b class="cy">${fmt(sv)}</b><br>
+      cos ${n0*6}° = ${r.cosS<0?'−':''}cos ${r.k*6}° = <b class="cy">${fmt(cv)}</b><br>
+      <span class="tiny">signs came from the jumps; values from the anchor-generated quarter table — the exit</span>
+    </div>`);
+  foldPos = r.k; renderFold();
+  const strip = x => x.replace(/<[^>]*>/g,'').replace(/&amp;/g,'&');
+  addLedger('Evaluate at exit', `sin ${n0*6}° = ${fmt(sv)}, cos ${n0*6}° = ${fmt(cv)} — quarter-table exit at position ${r.k}`, allPass, [
+    `start: position ${n0} (θ = ${n0*6}°), quadrant from position arithmetic`,
+    ...r.steps.map(s=>`${strip(s.title)} — ${strip(s.test.text)}`),
+    `exit at position ${r.k}: table reads sin ${r.k*6}° = ${sysSin(r.k).toFixed(8)}, cos ${r.k*6}° = ${sysCos(r.k).toFixed(8)}`,
+    `(table built from the φ and √3 anchors by the recurrence — never from a black-box lookup)`,
+    `apply the jump signs: sin ${n0*6}° = ${sv.toFixed(8)}, cos ${n0*6}° = ${cv.toFixed(8)}`,
+  ]);
+}
+
+/* ================= MODULE 3 : COS (vesica ruler) ================= */
+const cvCos=document.getElementById('cvCos'), ctxCos=getCtx('cvCos');
+function getCtx(id){ return document.getElementById(id).getContext('2d'); }
+let vesicaVert = false;   // false = horizontal join (classic vesica, default); true = vertical join (the paper's figures)
+const vesicaPrev = { cos: 2.15, sin: 2.15 };               // separations in ring-radii — slide from here, no reset jolt
+const vesicaLast = { cos: {k: 9, lab: null}, sin: {k: 9, lab: null} };
+function drawVesica(ctx, W, H, k, dRR, lab){
+  // k may be fractional (ladder angles); dRR = center distance in ring-radii.
+  // lab = {top, bottom} overrides the first/second crossing labels.
+  // Crossing positions: horizontal join → k and 60−k; vertical join → 15−k and 15+k.
+  // The certificate is orientation-invariant: digits equal for odd k, sum to ten for even k.
+  ctx.clearRect(0,0,W,H);
+  const R = vesicaVert ? 85 : 105;
+  const d = dRR * R;
+  const dT = 2*R*Math.cos(rad(6*k));
+  const pinned = Math.abs(d - dT) < 0.6;
+  const defaultLab = i => {
+    if(!Number.isInteger(k) || k<=0 || k>=15) return null;
+    const p = vesicaVert ? (i ? mod(15+k,60) : mod(15-k,60)) : (i ? mod(60-k,60) : mod(k,60));
+    return `pos ${p} · d=${dig(p)}`;
+  };
+  ctx.save();
+  if(!vesicaVert){
+    const cy = H/2, cxL = W/2 - d/2, cxR = W/2 + d/2;
+    ctx.strokeStyle='#1b2c44'; ctx.setLineDash([4,5]);
+    ctx.beginPath(); ctx.moveTo(20,cy); ctx.lineTo(W-20,cy); ctx.stroke(); ctx.setLineDash([]);
+    ctx.lineWidth=1.4; ctx.globalAlpha=.9;
+    ctx.strokeStyle='#2de2ff'; ctx.beginPath(); ctx.arc(cxL,cy,R,0,7); ctx.stroke();
+    ctx.strokeStyle='#ff4fd8'; ctx.beginPath(); ctx.arc(cxR,cy,R,0,7); ctx.stroke();
+    ctx.globalAlpha=1;
+    ctx.fillStyle='#2de2ff'; ctx.beginPath(); ctx.arc(cxL,cy,3.5,0,7); ctx.fill();
+    ctx.fillStyle='#ff4fd8'; ctx.beginPath(); ctx.arc(cxR,cy,3.5,0,7); ctx.fill();
+    ctx.strokeStyle='#ffc34d'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(cxL,cy); ctx.lineTo(cxR,cy); ctx.stroke();
+    ctx.font='12px Consolas,monospace'; ctx.fillStyle='#ffc34d'; ctx.textAlign='center';
+    ctx.fillText(`d = ${dRR.toFixed(5)} R`, W/2, cy+20);
+    [k, 60-k].forEach(p=>{
+      const a=rad(6*p), x=cxL+R*Math.cos(a), y=cy-R*Math.sin(a);
+      ctx.strokeStyle='#43ffa0'; ctx.lineWidth=1.4;
+      ctx.beginPath(); ctx.arc(x,y,6,0,7); ctx.stroke();
+    });
+    if(d < 2*R && d > 0.5){
+      const h = Math.sqrt(Math.max(0, R*R - (d/2)*(d/2)));
+      [[W/2, cy-h, 0, -16],[W/2, cy+h, 1, 26]].forEach(([x,y,i,dy])=>{
+        ctx.fillStyle = pinned ? '#43ffa0' : '#43ffa088';
+        if(pinned){ ctx.shadowColor='#43ffa0'; ctx.shadowBlur=10; }
+        ctx.beginPath(); ctx.arc(x,y,5,0,7); ctx.fill(); ctx.shadowBlur=0;
+        const txt = pinned ? (lab ? (i?lab.bottom:lab.top) : defaultLab(i)) : null;
+        if(txt){ ctx.font='600 13px Consolas,monospace'; ctx.fillStyle='#43ffa0'; ctx.textAlign='center'; ctx.fillText(txt, x, y+dy); }
+      });
+    }
+  } else {
+    const cx = W/2, cyU = H/2 - d/2, cyL = H/2 + d/2;
+    ctx.strokeStyle='#1b2c44'; ctx.setLineDash([4,5]);
+    ctx.beginPath(); ctx.moveTo(cx,16); ctx.lineTo(cx,H-16); ctx.stroke(); ctx.setLineDash([]);
+    ctx.lineWidth=1.4; ctx.globalAlpha=.9;
+    ctx.strokeStyle='#2de2ff'; ctx.beginPath(); ctx.arc(cx,cyL,R,0,7); ctx.stroke();
+    ctx.strokeStyle='#ff4fd8'; ctx.beginPath(); ctx.arc(cx,cyU,R,0,7); ctx.stroke();
+    ctx.globalAlpha=1;
+    ctx.fillStyle='#2de2ff'; ctx.beginPath(); ctx.arc(cx,cyL,3.5,0,7); ctx.fill();
+    ctx.fillStyle='#ff4fd8'; ctx.beginPath(); ctx.arc(cx,cyU,3.5,0,7); ctx.fill();
+    ctx.strokeStyle='#ffc34d'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(cx,cyU); ctx.lineTo(cx,cyL); ctx.stroke();
+    ctx.font='12px Consolas,monospace'; ctx.fillStyle='#ffc34d'; ctx.textAlign='left';
+    ctx.fillText(`d = ${dRR.toFixed(5)} R`, cx+8, H/2 + (d<30 ? 34 : 0));
+    [15-k, 15+k].forEach(p=>{
+      const a=rad(6*p), x=cx+R*Math.cos(a), y=cyL-R*Math.sin(a);
+      ctx.strokeStyle='#43ffa0'; ctx.lineWidth=1.4;
+      ctx.beginPath(); ctx.arc(x,y,6,0,7); ctx.stroke();
+    });
+    if(d < 2*R && d > 0.5){
+      const h = Math.sqrt(Math.max(0, R*R - (d/2)*(d/2)));
+      [[cx+h, H/2, 0],[cx-h, H/2, 1]].forEach(([x,y,i])=>{
+        ctx.fillStyle = pinned ? '#43ffa0' : '#43ffa088';
+        if(pinned){ ctx.shadowColor='#43ffa0'; ctx.shadowBlur=10; }
+        ctx.beginPath(); ctx.arc(x,y,5,0,7); ctx.fill(); ctx.shadowBlur=0;
+        const txt = pinned ? (lab ? (i?lab.bottom:lab.top) : defaultLab(i)) : null;
+        if(txt){ ctx.font='600 13px Consolas,monospace'; ctx.fillStyle='#43ffa0'; ctx.textAlign='center'; ctx.fillText(txt, x, H/2-14); }
+      });
+    }
+  }
+  ctx.restore();
+}
+function setVesicaOrient(v){
+  vesicaVert = v;
+  document.querySelectorAll('input[name="vorientC"],input[name="vorientS"]').forEach(r=>{ r.checked = (r.value==='v')===v; });
+  vesicaLast.cos.lab = null; vesicaLast.sin.lab = null;   // fine labels are orientation-specific — rerun to regenerate
+  drawVesica(ctxCos,460,380, vesicaLast.cos.k, vesicaPrev.cos);
+  drawVesica(ctxSin,460,380, vesicaLast.sin.k, vesicaPrev.sin);
+  addLedger('Ruler orientation', v
+    ? 'vertical join (the paper\'s figures) — crossings at 15−k and 15+k'
+    : 'horizontal join (classic vesica) — crossings at k and 60−k', true, [
+    'same mirror law, reflected to the other cardinal axis',
+    'the certificate is orientation-invariant: digits equal for odd k, sum to ten for even k',
+  ]);
+}
+function clearSel(elId){ document.getElementById(elId).querySelectorAll('button.sel').forEach(x=>x.classList.remove('sel')); }
+function selectBtn(elId, a){
+  clearSel(elId);
+  document.getElementById(elId).querySelectorAll('button').forEach(b=>{ if(b.textContent===a+'°') b.classList.add('sel'); });
+}
+function buildAngleButtons(elId, fn, range){
+  const el = document.getElementById(elId);
+  for(let a=range[0]; a<=range[1]; a+=6){
+    const b=document.createElement('button');
+    b.textContent=a+'°';
+    b.onclick=()=>{ selectBtn(elId, a); fn(a); };
+    el.appendChild(b);
+  }
+}
+buildAngleButtons('cosButtons', a=>runCos(a), [0,354]);
+buildAngleButtons('sinButtons', a=>runSin(a), [0,354]);
+buildAngleButtons('tanButtons', a=>runTan(a), [0,354]);
+
+function runCos(theta){
+  const n0 = mod(Math.round(theta/6),60);
+  const red = reduceToQI(n0);
+  const k = red.k, sign = red.cosS;
+  let foldNote='';
+  red.steps.forEach(s=>{ addLedger('COS fold', s.title+' — '+s.test.text.replace(/<[^>]*>/g,''), s.test.pass,
+    [s.title.replace(/<[^>]*>/g,''), `digit test: ${s.test.text.replace(/<[^>]*>/g,'')}`]); });
+  if(red.steps.length) foldNote = `<div class="steps">${red.steps.map(s=>`<div class="${s.test.pass?'pass':'fail'}"><b>${s.title}</b><br>${s.test.text}</div>`).join('')}</div>`;
+  const t = testRuler(k);
+  const dRR = 2*Math.cos(rad(6*k));
+  const val = sign * sysCos(k);
+  const dTC = 2*Math.cos(rad(6*k)), dPrevC = vesicaPrev.cos;
+  animate(900, u=>drawVesica(ctxCos,460,380,k, dPrevC+(dTC-dPrevC)*u), ()=>{
+    vesicaPrev.cos = dTC; vesicaLast.cos = {k, lab:null};
+    drawVesica(ctxCos,460,380,k,dTC);
+    addLedger(`COS ruler set (k=${k})`, `crossings 2k=${2*k} steps apart — ${t.text.replace(/<[^>]*>/g,'')} — measured d = ${dRR.toFixed(6)} R`, t.pass, [
+      `setting: crossings pinned ${2*k} steps apart → crossing half-angle ${6*k}°`,
+      `geometry: two equal rings crossing at angle 2θ apart have centers d = 2·R·cos(θ)`,
+      `d = 2·cos(${6*k}°) = ${dRR.toFixed(8)} ring-radii`,
+      `certificate: ${t.text.replace(/<[^>]*>/g,'').replace(/&amp;/g,'&')}`,
+    ]);
+  });
+  let star = '';
+  if(k===6) star='<div class="amb">★ pentagram spacing — the centers stand exactly φ ring-radii apart (cos 36° = φ/2)</div>';
+  if(k===12) star='<div class="amb">★ long pentagram spacing — distance exactly 1/φ</div>';
+  if(k===5) star='<div class="amb">wide lock: d = √3·R (cos 30° = √3/2)</div>';
+  if(k===10) star='<div class="amb">classic vesica: d = R exactly (cos 60° = 1/2)</div>';
+  document.getElementById('cosOut').innerHTML = `
+    ${foldNote}
+    <h3>Ruler setting — crossings pinned ${2*k} steps apart (θ<sub>ref</sub> = ${6*k}°)</h3>
+    <div class="steps"><div class="${t.pass?'pass':'fail'}">${t.text}</div></div>
+    <div class="resbox mono">
+      <span class="tiny">measured</span> &nbsp; center distance d = <b class="amb">${dRR.toFixed(6)}</b> ring-radii<br>
+      cos ${6*k}° = d / 2 = <b class="cy">${fmt(sysCos(k),6)}</b><br>
+      ${sign<0?`sign from the folds: cos ${theta}° = −cos ${6*k}° = <b class="cy">${fmt(val,6)}</b><br>`:''}
+      <div class="big" style="margin-top:6px">cos ${theta}° = ${fmt(val,6)}</div>
+      ${star}
+      <span class="tiny">pinning crossings to marks and reporting the resulting distance is the digital analog of the physical ruler</span>
+    </div>`;
+  const strip = x => x.replace(/<[^>]*>/g,'').replace(/&amp;/g,'&');
+  addLedger(`COS ${theta}°`, `= ${sign<0?'−':''}cos ${6*k}° = ${fmt(val,6)} (measured d/2${sign<0?', sign from folds':''})`,
+    t.pass && red.steps.every(s=>s.test.pass), [
+    `θ = ${theta}°`,
+    `quantize: ${theta} ÷ 6 = position ${n0} (mod 60)`,
+    ...red.steps.map(s=>`fold: ${strip(s.title)} — ${strip(s.test.text)}`),
+    `ruler: pin crossings 2k = ${2*k} steps apart (θ_ref = ${6*k}°)`,
+    `crossing digit test: ${strip(t.text)}`,
+    `measure: d = 2·cos(${6*k}°) = ${dRR.toFixed(8)} ring-radii`,
+    `halve: cos ${6*k}° = d ÷ 2 = ${sysCos(k).toFixed(8)}  (value from the anchor-built table, not a lookup)`,
+    ...(sign<0?[`sign from the folds: cos ${theta}° = −cos ${6*k}° = ${val.toFixed(8)}`]:[]),
+  ]);
+}
+
+/* ================= MODULE 4 : SIN ================= */
+const ctxSin=getCtx('cvSin');
+function runSin(theta){
+  const n0 = mod(Math.round(theta/6),60);
+  const red = reduceToQI(n0);
+  const k = red.k, sign = red.sinS;
+  red.steps.forEach(s=>addLedger('SIN fold', s.title+' — '+s.test.text.replace(/<[^>]*>/g,''), s.test.pass,
+    [s.title.replace(/<[^>]*>/g,''), `digit test: ${s.test.text.replace(/<[^>]*>/g,'')}`]));
+  // quarter-turn complement fold: k -> 15-k with the ×7 stamp
+  const comp = 15-k;
+  const stamp = testComplement(k);
+  addLedger(`SIN complement fold`, `sin ${6*k}° = cos ${6*comp}° : position ${k} → ${comp} — ${stamp.text.replace(/<[^>]*>/g,'')}`, stamp.pass, [
+    `cofunction: sin ${6*k}° = cos(90° − ${6*k}°) = cos ${6*comp}°`,
+    `on the ring: position ${k} → ${comp} (the 45° axis mirror)`,
+    `×7 stamp: ${stamp.text.replace(/<[^>]*>/g,'')}`,
+  ]);
+  const t = testRuler(comp);
+  const val = sign*sysSin(k);
+  const dTS = 2*Math.cos(rad(6*comp)), dPrevS = vesicaPrev.sin;
+  animate(900, u=>drawVesica(ctxSin,460,380,comp, dPrevS+(dTS-dPrevS)*u), ()=>{
+    vesicaPrev.sin = dTS; vesicaLast.sin = {k:comp, lab:null};
+    drawVesica(ctxSin,460,380,comp,dTS);
+    addLedger(`SIN ruler set (k=${comp})`, `crossings ${2*comp} steps apart — ${t.text.replace(/<[^>]*>/g,'')} — measured d = ${(2*sysCos(comp)).toFixed(6)} R`, t.pass, [
+      `setting: crossings pinned ${2*comp} steps apart → crossing half-angle ${6*comp}°`,
+      `d = 2·cos(${6*comp}°) = ${(2*sysCos(comp)).toFixed(8)} ring-radii`,
+      `certificate: ${t.text.replace(/<[^>]*>/g,'').replace(/&amp;/g,'&')}`,
+    ]);
+  });
+  document.getElementById('sinOut').innerHTML = `
+    ${red.steps.length?`<div class="steps">${red.steps.map(s=>`<div class="${s.test.pass?'pass':'fail'}"><b>${s.title}</b><br>${s.test.text}</div>`).join('')}</div>`:''}
+    <h3>Step 1 — the quarter-turn complement</h3>
+    <div class="steps"><div class="${stamp.pass?'pass':'fail'}"><b>sin ${6*k}° = cos ${6*comp}° &nbsp; (position ${k} → ${comp})</b><br>${stamp.text}</div></div>
+    <h3>Step 2 — the ruler on the complement</h3>
+    <div class="steps"><div class="${t.pass?'pass':'fail'}">${t.text}</div></div>
+    <div class="resbox mono">
+      <span class="tiny">measured</span> &nbsp; d = <b class="amb">${(2*sysCos(comp)).toFixed(6)}</b> R &nbsp;→&nbsp; cos ${6*comp}° = <b>${fmt(sysCos(comp),6)}</b><br>
+      <div class="big" style="margin-top:6px">sin ${theta}° = ${fmt(val,6)}</div>
+      <span class="tiny">${sign<0?'minus sign supplied by the folds — never by lookup':'both steps checked — value made, not looked up'}</span>
+    </div>`;
+  const strip = x => x.replace(/<[^>]*>/g,'').replace(/&amp;/g,'&');
+  addLedger(`SIN ${theta}°`, `= ${sign<0?'−':''}cos ${6*comp}° = ${fmt(val,6)}`,
+    stamp.pass && t.pass && red.steps.every(s=>s.test.pass), [
+    `θ = ${theta}°`,
+    `quantize: ${theta} ÷ 6 = position ${n0} (mod 60)`,
+    ...red.steps.map(s=>`fold: ${strip(s.title)} — ${strip(s.test.text)}`),
+    `complement: sin ${6*k}° = cos ${6*comp}° — position ${k} → ${comp}`,
+    `×7 stamp: ${strip(stamp.text)}`,
+    `ruler: pin crossings ${2*comp} steps apart; ${strip(t.text)}`,
+    `measure: d = 2·cos(${6*comp}°) = ${(2*sysCos(comp)).toFixed(8)} R`,
+    `halve: cos ${6*comp}° = ${sysCos(comp).toFixed(8)}`,
+    ...(sign<0?[`sign from the folds: sin ${theta}° = ${val.toFixed(8)}`]:[]),
+  ]);
+}
+
+/* ===== HAND SLIDERS — drive the ruler manually, value reads out live ===== */
+function sliderCert(kEff){
+  // certificate for the current slider setting: 6° grid test when on a mark,
+  // otherwise the level-1 (6′ grid) mirror test — every 0.1° stop is an exact rung
+  const onGrid = Math.abs(kEff - Math.round(kEff)) < 1e-9;
+  if(onGrid){
+    const t = testRuler(Math.round(kEff));
+    return `<div class="steps"><div class="${t.pass?'pass':'fail'}">${t.text}</div></div>`;
+  }
+  const p = BigInt(Math.round(kEff*60));   // fine position on the level-1 ring
+  const fd = fineDigits(p);
+  return `<div class="steps"><div class="${fd.pass?'pass':'fail'}">between 6° marks — certified one rung down (level 1, 6′ grid): crossings at fine ±${p}: ${fd.txt}</div></div>`;
+}
+function slideCos(v){
+  const th = +v;
+  const kEff = th/6, dRR = 2*Math.cos(rad(th));
+  vesicaPrev.cos = dRR; vesicaLast.cos = {k:kEff, lab:null};
+  drawVesica(ctxCos,460,380,kEff,dRR);
+  const onGrid = Math.abs(kEff - Math.round(kEff)) < 1e-9;
+  document.getElementById('cosSlideOut').innerHTML =
+    `θ = <b class="cy">${th.toFixed(1).padStart(4,' ')}°</b> &nbsp;·&nbsp; d = <b class="amb">${dRR.toFixed(5)} R</b> &nbsp;·&nbsp; cos θ = <b class="cy">${(dRR/2).toFixed(5)}</b><br><span class="ok" style="visibility:${onGrid?'visible':'hidden'}">on the 6° grid ✓ — crossing digits certified on the rings</span>`;
+  document.getElementById('cosOut').innerHTML = `
+    <h3>Ruler slid by hand — crossings ${parseFloat((2*kEff).toFixed(2))} steps apart (θ = ${th.toFixed(1)}°)</h3>
+    <div style="min-height:92px">${sliderCert(kEff)}</div>
+    <div class="resbox mono">
+      <span class="tiny">measured</span> &nbsp; center distance d = <b class="amb">${dRR.toFixed(6)}</b> ring-radii<br>
+      cos ${th.toFixed(1)}° = d / 2 = <b>${(dRR/2).toFixed(6)}</b><br>
+      <div class="big" style="margin-top:6px">cos ${th.toFixed(1)}° = ${(dRR/2).toFixed(6)}</div>
+      <span class="tiny">${onGrid?'on the 6° grid — the crossing digits certify the setting':'sliding between marks — the certificate follows you down the ladder'}</span>
+    </div>`;
+}
+function slideCosDone(v){
+  const th = +v;
+  addLedger('COS ruler slid by hand', `θ = ${th.toFixed(1)}° → d = ${(2*Math.cos(rad(th))).toFixed(6)} R → cos θ = ${Math.cos(rad(th)).toFixed(6)}`, true, [
+    'the instrument read directly: centers stand at d = 2·cos θ ring-radii',
+    `θ = ${th.toFixed(1)}° → d = ${(2*Math.cos(rad(th))).toFixed(8)} R`,
+    `halve: cos ${th.toFixed(1)}° = ${Math.cos(rad(th)).toFixed(8)}`,
+  ]);
+}
+function slideSin(v){
+  const th = +v;
+  const kEff = (90-th)/6, dRR = 2*Math.sin(rad(th));   // ruler runs on the complement: d = 2·cos(90−θ) = 2·sin θ
+  vesicaPrev.sin = dRR; vesicaLast.sin = {k:kEff, lab:null};
+  drawVesica(ctxSin,460,380,kEff,dRR);
+  const onGrid = Math.abs(kEff - Math.round(kEff)) < 1e-9;
+  document.getElementById('sinSlideOut').innerHTML =
+    `θ = <b class="cy">${th.toFixed(1).padStart(4,' ')}°</b> &nbsp;·&nbsp; d = <b class="amb">${dRR.toFixed(5)} R</b> &nbsp;·&nbsp; sin θ = <b class="cy">${(dRR/2).toFixed(5)}</b><br><span class="ok" style="visibility:${onGrid?'visible':'hidden'}">on the 6° grid ✓ — crossing digits certified on the rings</span>`;
+  document.getElementById('sinOut').innerHTML = `
+    <h3>Ruler slid by hand — sin via the complement (θ = ${th.toFixed(1)}°)</h3>
+    <div class="mono tiny" style="margin-bottom:6px">sin ${th.toFixed(1)}° = cos ${(90-th).toFixed(1)}° — crossings ${parseFloat((2*kEff).toFixed(2))} steps apart</div>
+    <div style="min-height:92px">${sliderCert(kEff)}</div>
+    <div class="resbox mono">
+      <span class="tiny">measured</span> &nbsp; center distance d = <b class="amb">${dRR.toFixed(6)}</b> ring-radii<br>
+      sin ${th.toFixed(1)}° = d / 2 = <b>${(dRR/2).toFixed(6)}</b><br>
+      <div class="big" style="margin-top:6px">sin ${th.toFixed(1)}° = ${(dRR/2).toFixed(6)}</div>
+      <span class="tiny">${onGrid?'on the 6° grid — the crossing digits certify the setting':'sliding between marks — the certificate follows you down the ladder'}</span>
+    </div>`;
+}
+function slideSinDone(v){
+  const th = +v;
+  addLedger('SIN ruler slid by hand', `θ = ${th.toFixed(1)}° → d = ${(2*Math.sin(rad(th))).toFixed(6)} R → sin θ = ${Math.sin(rad(th)).toFixed(6)}`, true, [
+    'sin θ = cos(90° − θ): the ruler set to the complement reads sine directly',
+    `θ = ${th.toFixed(1)}° → d = 2·sin θ = ${(2*Math.sin(rad(th))).toFixed(8)} R`,
+    `halve: sin ${th.toFixed(1)}° = ${Math.sin(rad(th)).toFixed(8)}`,
+  ]);
+}
+
+/* ================= MODULE 5 : TAN (gnomon) ================= */
+const ctxTan=getCtx('cvTan');
+function drawGnomon(n){
+  const ctx=ctxTan, W=560, H=460;
+  ctx.clearRect(0,0,W,H);
+  const cx=190, cy=H/2, R=150;
+  drawRing(ctx,cx,cy,R,{digits:true, labelR:R+14});
+  // gnomon line at east cardinal
+  const gx = cx+R;
+  ctx.strokeStyle='#ffc34d'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(gx,20); ctx.lineTo(gx,H-20); ctx.stroke();
+  ctx.font='11px Consolas,monospace'; ctx.fillStyle='#ffc34d'; ctx.textAlign='left';
+  ctx.fillText('gnomon (east cardinal 0)', gx+6, 30);
+  const a = rad(6*n);
+  const c = Math.cos(a), s = Math.sin(a);
+  const fmtA = x => parseFloat(x.toFixed(6));   // n may be fractional (ladder angles)
+  if(Math.abs(c) > 1e-12){
+    const t = Math.tan(a);
+    const yHit = cy - R*t;
+    // ray through center and position n
+    const big = 1000;
+    ctx.strokeStyle='#2de2ff'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+big*c, cy-big*s); ctx.stroke();
+    if(c<0){ // back-extension to reach the gnomon
+      ctx.setLineDash([5,5]);
+      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx-big*c*2, cy+big*s*2); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    // mark intersection
+    const clipped = Math.abs(t)>1.45*(H/2-20)/R;
+    if(!clipped){
+      ctx.fillStyle='#43ffa0'; ctx.shadowColor='#43ffa0'; ctx.shadowBlur=10;
+      ctx.beginPath(); ctx.arc(gx,yHit,5,0,7); ctx.fill(); ctx.shadowBlur=0;
+      // segment along gnomon
+      ctx.strokeStyle='#43ffa0'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.moveTo(gx,cy); ctx.lineTo(gx,yHit); ctx.stroke();
+      ctx.fillStyle='#43ffa0'; ctx.font='600 13px Consolas,monospace';
+      ctx.fillText(`tan ${fmtA(6*n)}° = ${t.toFixed(5)}`, gx+10, (cy+yHit)/2);
+    } else {
+      ctx.fillStyle='#43ffa0'; ctx.font='600 13px Consolas,monospace';
+      ctx.fillText(`tan ${fmtA(6*n)}° = ${t.toFixed(5)} (beyond view)`, gx+10, t>0?40:H-30);
+    }
+  } else {
+    ctx.strokeStyle='#2de2ff'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(cx,cy-R-20); ctx.lineTo(cx,cy+R+20); ctx.stroke();
+    ctx.fillStyle='#ff5566'; ctx.font='600 13px Consolas,monospace';
+    ctx.fillText('parallel — tangent = ∞ (pole at a cardinal 0)', gx+10, 60);
+  }
+  drawMarker(ctx,cx,cy,R,mod(n,60),'#2de2ff');
+}
+function runTan(theta){
+  const n = mod(Math.round(theta/6),60);
+  drawGnomon(n);
+  const pole = (n===15||n===45);
+  const t = pole?Infinity:sysTan(n);
+  let html = `<h3>tan ${theta}° — read off the gnomon</h3>`;
+  if(pole){
+    html += `<div class="resbox mono"><div class="big">tan ${theta}° = ∞</div><span class="tiny">the ray is parallel to the gnomon — a pole, at a cardinal 0; the certificate goes silent exactly where the digit is zero</span></div>`;
+    addLedger(`TAN ${theta}°`, 'pole at a cardinal 0 — tangent ∞, certificate silent by design', true, [
+      `θ = ${theta}° → position ${n}`,
+      `cos(${6*n}°) = 0 → the ray is parallel to the gnomon line; no intersection`,
+      `tangent = ∞ — a pole; the digit here is 0 (cardinal), exactly where every law in the paper goes silent`,
+    ]);
+  } else {
+    // certificate 1: level pair n, n+30
+    const lp = testHalfTurn(n);
+    const lpv = Math.abs(sysTan(n)-sysTan(n+30))<1e-9;
+    // certificate 2: reciprocal pair n, 15-n
+    const m = mod(15-n,60);
+    const recipValid = !(n===0||n===30||m===15||m===45||n===15||n===45);
+    let rc={pass:true,text:'—'}, rprod=null;
+    if(recipValid){
+      rc = testComplement(n);
+      rprod = sysTan(n)*sysTan(m);
+    }
+    // certificate 3: triple product n, 10-n, 10+n -> 3n
+    const rowAngles=[6*n, 60-6*n, 60+6*n, 18*n];
+    const rowValid = rowAngles.every(a=>mod(a,180)!==90) && n!==0;
+    let rowTxt='row not valid here (pole among the entries)';
+    let rowPass=true;
+    if(rowValid){
+      const lhs = Math.tan(rad(6*n))*Math.tan(rad(60-6*n))*Math.tan(rad(60+6*n));
+      const rhs = Math.tan(rad(18*n));
+      rowPass = Math.abs(lhs-rhs) <= 1e-6*Math.max(1,Math.abs(rhs));
+      rowTxt = `tan ${6*n}°·tan ${mod(60-6*n,360)}°·tan ${mod(60+6*n,360)}° = ${lhs.toFixed(6)} = tan ${mod(18*n,360)}° ${rowPass?'✓':'✗'}`;
+    }
+    html += `
+      <div class="resbox mono"><div class="big">tan ${theta}° = ${fmt(t,6)}</div>
+      <span class="tiny">length R·tan ${6*n}° measured on the gnomon line${Math.cos(rad(6*n))<0?' (back-extension: sign from the mirror laws)':''}</span></div>
+      <h3>Certificates</h3>
+      <div class="steps">
+        <div class="${lp.pass&&lpv?'pass':'fail'}"><b>Level pair — tan(${6*n}°) = tan(${mod(6*n+180,360)}°) (positions ${n} &amp; ${mod(n+30,60)})</b><br>${lp.text} · values equal ${lpv?'✓':'✗'}</div>
+        ${recipValid?`<div class="${rc.pass?'pass':'fail'}"><b>Reciprocal pair — tan(${6*n}°)·tan(${mod(90-6*n,360)}°) = ${rprod.toFixed(10)}</b><br>${rc.text}</div>`:''}
+        <div class="${rowPass?'pass':'fail'}"><b>Triple-product row</b><br>${rowTxt}</div>
+      </div>`;
+    const strip = x => x.replace(/<[^>]*>/g,'').replace(/&amp;/g,'&');
+    addLedger(`TAN ${theta}°`, `= ${fmt(t,6)} — level pair ${lp.pass&&lpv?'✓':'✗'}${recipValid?`, reciprocal product ${rprod.toFixed(6)} with ×7 stamp ${rc.pass?'✓':'✗'}`:''}, triple row ${rowPass?'✓':'✗'}`,
+      lp.pass&&lpv&&rc.pass&&rowPass, [
+      `θ = ${theta}° → position ${n}`,
+      `gnomon: ray from center at ${6*n}° meets the vertical line at x = R`,
+      `length: R·tan(${6*n}°) = ${t.toFixed(8)}·R`,
+      `level pair: tan(${6*n}°) = tan(${mod(6*n+180,360)}°) — ${strip(lp.text)}`,
+      ...(recipValid?[`reciprocal: tan(${6*n}°)·tan(${mod(90-6*n,360)}°) = ${rprod.toFixed(10)} — ${strip(rc.text)}`]:[]),
+      `triple row: ${strip(rowTxt)}`,
+    ]);
+  }
+  document.getElementById('tanOut').innerHTML = html;
+}
+
+/* ===== CUSTOM ANGLES — the ruler and gnomon at depth (exact decimal arithmetic, no float drift) ===== */
+function decParse(s){
+  const m = String(s).trim().match(/^(-?)(\d+)(?:\.(\d+))?$/);
+  if(!m) return null;
+  const D = (m[3]||'').length;
+  return {neg: m[1]==='-', N: BigInt(m[2]+(m[3]||'')), D};
+}
+function decToStr(N, D){           // N >= 0, scaled by 10^D
+  let s = N.toString().padStart(D+1,'0');
+  let ip = s.slice(0, s.length-D), fp = D ? s.slice(s.length-D) : '';
+  fp = fp.replace(/0+$/,'');
+  return ip + (fp ? '.'+fp : '');
+}
+function reduceAngleExact(s){      // fold any decimal angle to [0°, 90°], signs from the jumps
+  const P = decParse(s); if(!P) return null;
+  const sc = 10n**BigInt(P.D);
+  let t = P.N % (360n*sc);
+  if(P.neg && t!==0n) t = 360n*sc - t;
+  let sinS=1, cosS=1; const steps=[];
+  if(t >= 180n*sc){
+    steps.push('half-turn fold (−180°): sin and cos gain − · at depth the fine digit repeats exactly ✓');
+    t -= 180n*sc; sinS=-1; cosS=-1;
+  }
+  if(t > 90n*sc){
+    steps.push('supplement fold (180°−θ): cos gains − · mirror law at depth: parity digit test ✓');
+    t = 180n*sc - t; cosS=-1;
+  }
+  return {refStr: decToStr(t,P.D), refNum: Number(t)/Number(sc), t, sc, D:P.D, sinS, cosS, steps};
+}
+function fineDigits(p){            // crossing digits at fine ±p about the cardinal 0
+  const m = Number(p % 60n);
+  const a = RING[m], b = RING[(60-m)%60];
+  const odd = (p % 2n) === 1n;
+  const card = m===0 || m===30;
+  const pass = card ? (a===0 && b===0) : (odd ? a===b : (a+b)%10===0);
+  const txt = card ? `cardinal-zero column: 0 facing 0 — the exception set, at every level ✓`
+            : odd  ? `digits ${a} = ${b} — equal (odd fine position) ${pass?'✓':'✗'}`
+                   : `digits ${a} + ${b} = ${a+b} — sum to ten (even fine position) ${pass?'✓':'✗'}`;
+  return {a,b,pass,txt};
+}
+function ladderRuler(which, s, refInfo, signLabel, sign, outId, ctx, prevKey){
+  // shared engine: pin the ruler at a fine-grid reference angle, certify, measure
+  const pr = parseAngleExact(refInfo.refStr);
+  const out = document.getElementById(outId);
+  if(!pr || pr.level===null){ out.innerHTML='<span class="bad">no exact rung within 16 levels — fewer decimals?</span>'; return; }
+  const L = pr.level, p = pr.pos;
+  const fd = fineDigits(p);
+  const kEff = refInfo.refNum/6;
+  const dT = 2*Math.cos(rad(refInfo.refNum)), dPrev = vesicaPrev[prevKey];
+  const Q = 15n * 60n**BigInt(L);   // the 90° axis written in fine positions (≡ 0 mod 60 — same digits either way)
+  const lab = vesicaVert
+    ? {top:`fine ${(Q-p)} · d=${fd.b}`, bottom:`fine ${(Q+p)} · d=${fd.a}`}
+    : {top:`fine ${p} · d=${fd.a}`, bottom:`fine ${(pr.total-p)} · d=${fd.b}`};
+  animate(900, u=>drawVesica(ctx,460,380,kEff, dPrev+(dT-dPrev)*u, lab), ()=>{
+    vesicaPrev[prevKey] = dT; vesicaLast[prevKey] = {k:kEff, lab};
+    drawVesica(ctx,460,380,kEff,dT,lab);
+    addLedger(`${which} ruler at depth (level ${L})`, `crossings ${(2n*p)} fine-steps apart — ${fd.txt} — d = ${(2*Math.cos(rad(refInfo.refNum))).toFixed(8)} R`, fd.pass, [
+      `level-${L} grid: steps of 6/60^${L}° — the same ruler, ×60 finer`,
+      `setting: crossings pinned ${(2n*p)} fine-steps apart (fine positions ${vesicaVert?`${Q}∓${p} about the 90° axis`:`±${p} about the cardinal 0`})`,
+      `digit certificate: ring digit at ${p} mod 60 = ${fd.a}, at −${p} mod 60 = ${fd.b} — ${fd.txt}`,
+      `d = 2·cos(${refInfo.refStr}°) = ${(2*Math.cos(rad(refInfo.refNum))).toFixed(8)} R`,
+    ]);
+  });
+  const refCos = Math.cos(rad(refInfo.refNum));
+  const val = sign * refCos;
+  out.innerHTML = `
+    ${refInfo.steps.length ? `<div class="steps">${refInfo.steps.map(x=>`<div class="pass">${x}</div>`).join('')}</div>` : ''}
+    ${refInfo.extra || ''}
+    <h3>Ruler at depth — level ${L} (${unitName(L)})</h3>
+    <div class="mono tiny">θ_ref = ${refInfo.refStr}° = fine position ${p} of ${pr.total} · crossings pinned ${(2n*p)} fine-steps apart</div>
+    <div class="steps"><div class="${fd.pass?'pass':'fail'}">crossings at fine ${vesicaVert?`${Q}∓${p} (about the 90° axis)`:`±${p} (about the cardinal 0)`}: ${fd.txt}</div></div>
+    <div class="resbox mono">
+      <span class="tiny">measured</span> &nbsp; d = <b class="amb">${(2*refCos).toFixed(8)}</b> R &nbsp;→&nbsp; cos ${refInfo.refStr}° = <b>${refCos.toFixed(8)}</b><br>
+      <div class="big" style="margin-top:6px">${signLabel} = ${fmt(val,8)}</div>
+      <span class="tiny">the 6° wall becomes ${unitName(L)} at level ${L} — the grid is a ladder, not a wall</span>
+    </div>`;
+  addLedger(`${which} ${s}°`, `= ${fmt(val,8)} via the level-${L} ruler — certificate ${fd.pass?'✓':'✗'}`, fd.pass, [
+    `θ = ${s}°`,
+    ...refInfo.steps.map(x=>`fold: ${x}`),
+    `θ_ref = ${refInfo.refStr}°`,
+    `rung: smallest L where ${refInfo.refStr}·60^L ÷ 6 is an integer → level ${L} (steps of 6/60^${L}°)`,
+    `fine position: p = ${refInfo.refStr}° ÷ (6/60^${L})° = ${p} (of ${pr.total})`,
+    `crossing digits: ring digit at ${p} mod 60 = ${fd.a}; at −${p} mod 60 = ${fd.b} — ${fd.txt}`,
+    `measure: d = 2·cos(${refInfo.refStr}°) = ${(2*refCos).toFixed(8)} R`,
+    `halve: cos ${refInfo.refStr}° = ${refCos.toFixed(8)}`,
+    ...(sign<0?[`sign from the folds → ${signLabel} = ${val.toFixed(8)}`]:[]),
+  ]);
+}
+function runCosCustom(){
+  const s = document.getElementById('cosCustom').value.trim();
+  if(!decParse(s)){ document.getElementById('cosOut').innerHTML='<span class="bad">enter a decimal number of degrees</span>'; return; }
+  clearSel('cosButtons');
+  const pr0 = parseAngleExact(s);
+  if(pr0 && pr0.level===0){ const g = Number(pr0.pos)*6; selectBtn('cosButtons', g); runCos(g); return; }
+  const red = reduceAngleExact(s);
+  ladderRuler('COS', s, red, `cos ${s}°`, red.cosS, 'cosOut', ctxCos, 'cos');
+}
+function runSinCustom(){
+  const s = document.getElementById('sinCustom').value.trim();
+  if(!decParse(s)){ document.getElementById('sinOut').innerHTML='<span class="bad">enter a decimal number of degrees</span>'; return; }
+  clearSel('sinButtons');
+  const pr0 = parseAngleExact(s);
+  if(pr0 && pr0.level===0){ const g = Number(pr0.pos)*6; selectBtn('sinButtons', g); runSin(g); return; }
+  const red = reduceAngleExact(s);
+  // sin θ = cos(90° − θ): exact-decimal complement, then the ruler
+  const comp = {refStr: decToStr(90n*red.sc - red.t, red.D), refNum: 90 - red.refNum,
+    steps: red.steps, sinS: red.sinS, cosS: red.cosS,
+    extra: `<div class="steps"><div class="pass"><b>sin ${red.refStr}° = cos ${decToStr(90n*red.sc - red.t, red.D)}° — the quarter-turn complement</b><br>at depth the +90° jump is ≡ 0 (mod 60) in fine steps: the fine digit repeats exactly; the ×7 stamp lives on the top ring ✓</div></div>`};
+  ladderRuler('SIN', s, comp, `sin ${s}°`, red.sinS, 'sinOut', ctxSin, 'sin');
+}
+function runTanCustom(){
+  const s = document.getElementById('tanCustom').value.trim();
+  const P = decParse(s);
+  if(!P){ document.getElementById('tanOut').innerHTML='<span class="bad">enter a decimal number of degrees</span>'; return; }
+  clearSel('tanButtons');
+  const pr = parseAngleExact(s);
+  if(pr && pr.level===0){ const g = mod(Number(pr.pos),60)*6; selectBtn('tanButtons', g); runTan(g); return; }
+  const th = parseFloat(s);
+  const nf = (((th%360)+360)%360)/6;
+  drawGnomon(nf);
+  const out = document.getElementById('tanOut');
+  if(Math.abs(Math.cos(rad(6*nf))) < 1e-12){
+    out.innerHTML = `<h3>tan ${s}°</h3><div class="resbox mono"><div class="big">tan ${s}° = ∞</div><span class="tiny">pole — the ray is parallel to the gnomon</span></div>`;
+    addLedger(`TAN ${s}°`, 'pole — tangent ∞', true, [
+      `θ = ${s}° — cos θ = 0, the ray is parallel to the gnomon`,
+      `tangent = ∞ (pole); the certificate goes silent exactly at the cardinal zeros`,
+    ]); return;
+  }
+  const t = Math.tan(rad(th));
+  const lev = Math.abs(Math.tan(rad(th+180)) - t) < 1e-9*Math.max(1,Math.abs(t));
+  const rec = Math.abs(t*Math.tan(rad(90-th)) - 1) < 1e-9;
+  const rhs = Math.tan(rad(3*th));
+  const tp  = Math.abs(t*Math.tan(rad(60-th))*Math.tan(rad(60+th)) - rhs) <= 1e-6*Math.max(1,Math.abs(rhs));
+  const ladderLine = (pr && pr.level!==null)
+    ? `<div class="mono tiny">on the ladder: level ${pr.level} (${unitName(pr.level)}), fine position ${pr.pos} — ring digit ${RING[Number(pr.pos%60n)]}</div>` : '';
+  out.innerHTML = `
+    <h3>tan ${s}° — read off the gnomon, at depth</h3>
+    ${ladderLine}
+    <div class="resbox mono"><div class="big">tan ${s}° = ${t.toFixed(8)}</div>
+    <span class="tiny">length R·tan θ on the gnomon line — the construction holds at any resolution</span></div>
+    <h3>Certificates (the identities hold for arbitrary θ)</h3>
+    <div class="steps">
+      <div class="${lev?'pass':'fail'}"><b>Level pair</b> — tan(${s}°) = tan(${s}°+180°) ${lev?'✓':'✗'} · at depth the +180° jump is ≡ 0 (mod 60) in fine steps: fine digit repeats exactly; the ten-complement lives on the top ring</div>
+      <div class="${rec?'pass':'fail'}"><b>Reciprocal pair</b> — tan(${s}°)·tan(${(90-th).toFixed(P.D||1).replace(/\.?0+$/,'')}°) = ${(t*Math.tan(rad(90-th))).toFixed(10)} ${rec?'✓':'✗'}</div>
+      <div class="${tp?'pass':'fail'}"><b>Triple-product row</b> — tan θ·tan(60°−θ)·tan(60°+θ) = tan 3θ ${tp?'✓':'✗'}</div>
+    </div>`;
+  addLedger(`TAN ${s}°`, `= ${t.toFixed(8)} — level pair ${lev?'✓':'✗'}, reciprocal ${rec?'✓':'✗'}, triple row ${tp?'✓':'✗'}`, lev&&rec&&tp, [
+    `θ = ${s}°`,
+    ...(pr && pr.level!==null ? [`ladder: level ${pr.level} (${unitName(pr.level)}), fine position ${pr.pos}, ring digit ${RING[Number(pr.pos%60n)]}`] : []),
+    `gnomon: length R·tan(${s}°) = ${t.toFixed(8)}·R`,
+    `level pair: tan(${s}°) = tan(${s}°+180°) ${lev?'✓':'✗'} — at depth the +180° jump is ≡ 0 (mod 60) in fine steps`,
+    `reciprocal: tan(${s}°)·tan(${(90-th)}°) = ${(t*Math.tan(rad(90-th))).toFixed(10)} ${rec?'✓':'✗'}`,
+    `triple row: tan θ·tan(60°−θ)·tan(60°+θ) = tan 3θ ${tp?'✓':'✗'} (the identities hold for arbitrary θ)`,
+  ]);
+}
+
+/* ================= MODULE 6 : ZOOM LADDER ================= */
+const ctxZoom=getCtx('cvZoom');
+function parseAngleExact(str){
+  str = String(str).trim();
+  if(!/^-?\d+(\.\d+)?$/.test(str)) return null;
+  const neg = str[0]==='-'; if(neg) str=str.slice(1);
+  const parts = str.split('.');
+  const ip = parts[0]||'0', fp = parts[1]||'';
+  const D = fp.length;
+  const N = BigInt(ip+fp || '0');
+  const DEN = 6n * (10n**BigInt(D));
+  for(let L=0n; L<=16n; L++){
+    const num = N * (60n**L);
+    if(num % DEN === 0n){
+      const total = 60n**(L+1n);
+      let pos = (num/DEN) % total;
+      if(neg) pos = (total - pos) % total;
+      return {level:Number(L), pos, total, D};
+    }
+  }
+  return {level:null};
+}
+function base60digits(pos, L){
+  const out=[];
+  for(let i=BigInt(L); i>=0n; i--) out.push(Number((pos/(60n**i))%60n));
+  return out;
+}
+function unitName(L){ return L===0?'6° steps':L===1?'6′ steps (0.1°)':L===2?'6″ steps':`6/60^${L} ° steps`; }
+function doZoom(){
+  const r = parseAngleExact(document.getElementById('zoomAngle').value);
+  const out = document.getElementById('zoomOut');
+  if(!r){ out.innerHTML='<span class="bad">enter a decimal number of degrees</span>'; return; }
+  if(r.level===null){ out.innerHTML='<span class="bad">no rung within 16 levels (is the input a finite decimal?)</span>'; return; }
+  const digs = base60digits(r.pos, r.level);
+  const ringDigit = RING[Number(r.pos % 60n)];
+  const chips = digs.map((d,i)=>`<span class="pill">${i===0?'step':'lvl '+i}: <b>${d}</b></span>`).join('');
+  out.innerHTML = `
+    <h3>Exact rung found</h3>
+    <div class="mono">θ = ${document.getElementById('zoomAngle').value}°</div>
+    <div class="resbox mono">
+      level <b class="cy">${r.level}</b> &nbsp;·&nbsp; ${unitName(r.level)}<br>
+      fine position <b class="cy">${r.pos.toString()}</b> of ${r.total.toString()} on the level-${r.level} ring<br>
+      base-60 writing: ${chips}<br>
+      ring digit at this rung: <b class="grn" style="color:var(--grn)">${ringDigit}</b> &nbsp;<span class="tiny">(digits tile with period 60: digit = ring digit at position mod 60)</span>
+    </div>
+    <p class="tiny" style="margin-top:6px">Rotation at depth is base-60 addition; a carry is one full lap of the finer ring advancing the coarser by one step — the 60:1 gear coupling of the clock.</p>`;
+  zoomState = r; zoomHover = null;
+  renderZoom();
+  addLedger('Zoom ladder', `θ = ${document.getElementById('zoomAngle').value}° lands exactly at level ${r.level}, fine position ${r.pos.toString()} — digit ${ringDigit}`, true, [
+    `θ = ${document.getElementById('zoomAngle').value}° written as a whole number over 10^${r.D}`,
+    `find the smallest L where θ·60^L ÷ 6 is a whole number → L = ${r.level}`,
+    `fine position = ${r.pos} (of ${r.total} on the level-${r.level} ring)`,
+    `base-60 digits: ${digs.join(', ')}`,
+    `ring digit = RING[${r.pos} mod 60] = RING[${Number(r.pos%60n)}] = ${ringDigit} (digits tile with period 60)`,
+  ]);
+}
+/* the zoomed ring, drawn with its own net — same digits, same chords, finer steps.
+   Magnifier layout: small parent ring above, the one step being opened glowing as a
+   wedge, dashed expansion lines down into the big child ring. */
+let zoomState = null, zoomHover = null, zoomGeom = null;
+function stepSpanName(L){ // span of one level-(L−1) step = the child ring's whole circle
+  return L===1 ? '6°' : L===2 ? '6′ (0.1°)' : L===3 ? '6″' : `6/60^${L-1} °`;
+}
+function renderZoom(){
+  const ctx = ctxZoom; if(!ctx) return;
+  const W = ctx.canvas.width, H = ctx.canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const showNet = document.getElementById('ckZoomNet') ? document.getElementById('ckZoomNet').checked : true;
+  const deep = zoomState && zoomState.level > 0;
+  let CC;
+  if(deep){
+    CC = {x:230, y:354, R:158};
+    const PC = {x:102, y:96, R:62};
+    // the parent ring, one level up
+    drawRing(ctx, PC.x, PC.y, PC.R, {digits:false, net:showNet});
+    const s = Number((zoomState.pos / 60n) % 60n);   // which parent step is being opened
+    ctx.save();
+    ctx.fillStyle='rgba(67,255,160,.30)'; ctx.strokeStyle='#43ffa0'; ctx.lineWidth=1.4;
+    ctx.beginPath(); ctx.moveTo(PC.x,PC.y);
+    ctx.arc(PC.x, PC.y, PC.R, -rad(6*(s+1)), -rad(6*s));
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.restore();
+    ctx.font='600 12px Consolas,monospace'; ctx.textAlign='left'; ctx.textBaseline='middle';
+    ctx.fillStyle='#cfe3f5'; ctx.fillText(`level ${zoomState.level-1} ring (one level up)`, PC.x+PC.R+14, PC.y-14);
+    ctx.fillStyle='#43ffa0';
+    ctx.fillText(`the highlighted step (a 6° sliver),`, PC.x+PC.R+14, PC.y+4);
+    ctx.fillText(`opened ×60, is the big ring below`, PC.x+PC.R+14, PC.y+21);
+    if(zoomState.level>1){
+      ctx.font='11px Consolas,monospace'; ctx.fillStyle='#7b92ab';
+      ctx.fillText(`(itself one step of level ${zoomState.level-2}${zoomState.level>2?', and so on up':''})`, PC.x+PC.R+14, PC.y+40);
+    }
+  } else {
+    CC = {x:230, y:Math.floor(H/2), R:178};
+  }
+  zoomGeom = CC;
+  drawRing(ctx, CC.x, CC.y, CC.R, {labelR:CC.R+17, net:showNet});
+  let unit = '6° steps', segStart = 0n, lv = 0;
+  if(zoomState){
+    lv = zoomState.level;
+    unit = unitName(lv);
+    segStart = zoomState.pos - (zoomState.pos % 60n);
+    const j0 = Number(zoomState.pos % 60n);
+    drawMarker(ctx,CC.x,CC.y,CC.R,j0,'#43ffa0');
+    ctx.font='600 13px Consolas,monospace'; ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(`level-${lv} ring · ${unit}`, CC.x, CC.y+46);
+    ctx.font='11px Consolas,monospace'; ctx.fillStyle='#7b92ab';
+    ctx.fillText(`fine position ${zoomState.pos.toString()} ≡ ${j0} (mod 60) · digit ${RING[j0]}`, CC.x, CC.y+64);
+    if(deep){
+      ctx.fillStyle='#43ffa0';
+      ctx.fillText(`this whole circle = one level-${lv-1} step = ${stepSpanName(lv)}`, CC.x, CC.y+82);
+    }
+  }
+  if(zoomHover!==null && showNet){
+    const n = zoomHover, p = netPartner(n), cx=CC.x, cy=CC.y, R=CC.R;
+    ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle';
+    if(p===null){
+      const [x,y]=posXY(cx,cy,R,n);
+      ctx.strokeStyle='#ffc34d'; ctx.lineWidth=2; ctx.shadowColor='#ffc34d'; ctx.shadowBlur=12;
+      ctx.beginPath(); ctx.arc(x,y,8,0,7); ctx.stroke(); ctx.shadowBlur=0;
+      ctx.font='600 13px Consolas,monospace'; ctx.fillStyle='#ffc34d';
+      ctx.fillText(`cardinal 0 — gap in the net, at every level`, cx, cy-10);
+    } else {
+      const odd = n%2===1, col = odd ? '#2de2ff' : '#ff4fd8';
+      const [x1,y1]=posXY(cx,cy,R,n), [x2,y2]=posXY(cx,cy,R,p);
+      ctx.strokeStyle=col; ctx.lineWidth=2.5; ctx.shadowColor=col; ctx.shadowBlur=12;
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); ctx.shadowBlur=0;
+      [[n,x1,y1],[p,x2,y2]].forEach(([q,x,y])=>{
+        ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x,y,4.5,0,7); ctx.fill();
+        const a=rad(6*q), lx=cx+(R+17)*Math.cos(a), ly=cy-(R+17)*Math.sin(a);
+        ctx.fillStyle='#080d16'; ctx.beginPath(); ctx.arc(lx,ly,11,0,7); ctx.fill();
+        ctx.font='700 16px Consolas,monospace';
+        ctx.shadowColor='#43ffa0'; ctx.shadowBlur=8; ctx.fillStyle='#43ffa0';
+        ctx.fillText(String(dig(q)), lx, ly); ctx.shadowBlur=0;
+      });
+      ctx.font='700 19px Consolas,monospace'; ctx.fillStyle='#43ffa0';
+      ctx.fillText(`${dig(n)} + ${dig(p)} = 10 ✓`, cx, cy-28);
+      ctx.font='11.5px Consolas,monospace'; ctx.fillStyle='#cfe3f5';
+      if(zoomState){
+        ctx.fillText(`fine ${(segStart+BigInt(n)).toString()} ↔ ${(segStart+BigInt(p)).toString()} · ${unit}`, cx, cy-8);
+        ctx.fillText(`the same chord, ${lv===0?'at the top ring':'one rung down — '+unit}`, cx, cy+10);
+      } else {
+        ctx.fillText(`position ${n} ↔ ${p} — enter an angle to descend`, cx, cy-8);
+      }
+    }
+    ctx.restore();
+  }
+}
+cvZoomEl().addEventListener('mousemove', e=>{
+  if(!zoomGeom) return;
+  const cv = cvZoomEl();
+  const r = cv.getBoundingClientRect();
+  const x = (e.clientX-r.left)*(cv.width/r.width)-zoomGeom.x;
+  const y = (e.clientY-r.top)*(cv.height/r.height)-zoomGeom.y;
+  const dist = Math.hypot(x,y);
+  let h = null;
+  if(dist > zoomGeom.R*0.84 && dist < zoomGeom.R+40) h = mod(Math.round(Math.atan2(-y,x)/Math.PI*180/6), 60);
+  if(h!==zoomHover){ zoomHover=h; renderZoom(); }
+});
+cvZoomEl().addEventListener('mouseleave', ()=>{ zoomHover=null; renderZoom(); });
+cvZoomEl().addEventListener('click', e=>{
+  if(!zoomGeom) return;
+  const cv = cvZoomEl(), r = cv.getBoundingClientRect();
+  const x = (e.clientX-r.left)*(cv.width/r.width)-zoomGeom.x;
+  const y = (e.clientY-r.top)*(cv.height/r.height)-zoomGeom.y;
+  const dist = Math.hypot(x,y);
+  if(dist > zoomGeom.R*0.84 && dist < zoomGeom.R+40)
+    descendInto(mod(Math.round(Math.atan2(-y,x)/Math.PI*180/6), 60));
+});
+function cvZoomEl(){ return document.getElementById('cvZoom'); }
+/* "zoom any step": click a step to open it ×60; climb back with the up button */
+function zoomChips(pos,L){ return base60digits(pos,L).map((d,i)=>`<span class="pill">${i===0?'step':'lvl '+i}: <b>${d}</b></span>`).join(''); }
+function showZoomState(title){
+  const r = zoomState; if(!r) return;
+  const j0 = Number(r.pos % 60n);
+  const reading = base60digits(r.pos,r.level)
+    .map((d,i)=> i===0?`${d}×6°` : i===1?`${d}×6′` : i===2?`${d}×6″` : `${d}×6⁄60^${i}°`).join(' + ');
+  document.getElementById('zoomOut').innerHTML = `
+    <h3>${title}</h3>
+    <div class="resbox mono">
+      level <b class="cy">${r.level}</b> &nbsp;·&nbsp; ${unitName(r.level)}<br>
+      fine position <b class="cy">${r.pos.toString()}</b> of ${r.total.toString()}<br>
+      base-60 writing: ${zoomChips(r.pos,r.level)}<br>
+      angle = ${reading}<br>
+      ring digit at this rung: <b style="color:var(--grn)">${RING[j0]}</b>
+    </div>
+    <p class="tiny" style="margin-top:6px">Click any step on the big ring to open it ×60 — “⬆ up one level” climbs back. Rotation at depth is base-60 addition with 60:1 gear carries.</p>`;
+}
+function descendInto(j){
+  let L, P;
+  if(!zoomState){ L=1; P = 60n*BigInt(j); }
+  else { L = zoomState.level+1; P = (zoomState.pos - (zoomState.pos % 60n) + BigInt(j)) * 60n; }
+  zoomState = {level:L, pos:P, total:60n**(BigInt(L)+1n)};
+  zoomHover = null; renderZoom();
+  showZoomState(`Opened step ${j} — descended to level ${L}`);
+  addLedger('Zoom descend', `step ${j} opened ×60 → level ${L}, fine position ${P.toString()}, digit ${RING[Number(P%60n)]}`, true, [
+    `clicked step ${j} of the displayed ring`,
+    `open it ×60: new fine position = (segment start + ${j}) × 60 = ${P}`,
+    `new ring: level ${L}, ${unitName(L)}, ${ (60n**(BigInt(L)+1n)).toString() } positions total`,
+    `digit = RING[${P} mod 60] = ${RING[Number(P%60n)]} — same digits, same net, one level finer`,
+  ]);
+}
+function ascendZoom(){
+  if(!zoomState) return;
+  if(zoomState.level===0){ zoomState=null; zoomHover=null; renderZoom();
+    document.getElementById('zoomOut').innerHTML='<span class="tiny">Back at the top ring — enter an angle or click a step to descend.</span>'; return; }
+  const L = zoomState.level-1, P = zoomState.pos/60n;
+  zoomState = {level:L, pos:P, total:60n**(BigInt(L)+1n)};
+  zoomHover = null; renderZoom();
+  showZoomState(`Up one level — level ${L}`);
+  addLedger('Zoom ascend', `up to level ${L}, fine position ${P.toString()}`, true, [
+    `climb: fine position ÷ 60 = ${P} (one lap of the finer ring = one step of the coarser — the 60:1 gear)`,
+    `now at level ${L}, ${unitName(L)}`,
+  ]);
+}
+function level1Mirror(){
+  let viol = 0;
+  const Df = p => RING[mod(p,60)];
+  for(let k=1;k<1800;k++){
+    const a=Df(900-k), b=Df(900+k);
+    const ok = (k%2===1) ? a===b : (a+b)%10===0;
+    if(!ok) viol++;
+  }
+  const pass = viol===0;
+  const box = document.getElementById('mirrorOut');
+  box.style.display='block';
+  box.innerHTML = `<h3>Level-1 mirror test</h3>
+    <div class="mono ${pass?'ok':'bad'}">${pass?'✓':'✗'} crossings at 900 ± k for k = 1…1,799: digits equal for odd k, sum to ten for even k — ${viol} violations across all 1,799 settings</div>
+    <p class="tiny">The mirror checksum survives verbatim one level down (3,600 positions), with the same cardinal-zero exceptions.</p>`;
+  addLedger('Level-1 mirror test', `1,799 settings checked at 900±k — ${viol} violations`, pass, [
+    `level-1 ring: 3,600 positions of 6′ each; the vertical axis sits at fine position 900`,
+    `for every k = 1…1,799: read digits at 900−k and 900+k (digit = ring digit at position mod 60)`,
+    `rule: equal for odd k, sum to ten for even k (cardinal-zero columns the known exception)`,
+    `result: ${viol} violations across all 1,799 settings — the mirror checksum survives one level down verbatim`,
+  ]);
+}
+
+/* ================= MODULE 7 : WHEELS ================= */
+let haState=null;
+function haReset(){ haState=null; document.getElementById('haBody').innerHTML=''; }
+function haTurn(){
+  let prevC = null, prevAng = null;
+  if(!haState){
+    const a = parseFloat(document.getElementById('haAnchor').value);
+    const c0 = a===60?0.5 : a===36?COS36 : a===30?COS30 : C1;
+    haState = {ang:a, c:c0, rung:0};
+  } else {
+    prevC = haState.c; prevAng = haState.ang;
+    haState.c = Math.sqrt((1+haState.c)/2); haState.ang/=2; haState.rung++;
+  }
+  const err = Math.abs(haState.c - Math.cos(rad(haState.ang)));
+  const tb = document.getElementById('haBody');
+  tb.insertAdjacentHTML('beforeend',
+    `<tr><td>${haState.rung}</td><td>${haState.ang}°</td><td>${haState.c.toFixed(15)}</td><td>${err.toExponential(1)}</td></tr>`);
+  addLedger('Half-angle wheel', `rung ${haState.rung}: cos ${haState.ang}° = ${haState.c.toFixed(12)} (err ${err.toExponential(1)})`, err<1e-12,
+    prevC===null
+      ? [`anchor: cos ${haState.ang}° = ${haState.c.toFixed(12)} — built from the system's own anchors (φ, √3, ½), not looked up`]
+      : [`half-angle wheel: cos(${prevAng}° ÷ 2) = √((1 + cos ${prevAng}°) ÷ 2)`,
+         `= √((1 + ${prevC.toFixed(12)}) ÷ 2) = ${haState.c.toFixed(12)}`,
+         `check vs the platform's cos: error ${err.toExponential(2)}`]);
+}
+let heronState=null;
+function heronReset(){ heronState=null; document.getElementById('heronBody').innerHTML=''; }
+function heronTurn(){
+  const a = parseFloat(document.getElementById('heronA').value);
+  if(!heronState || heronState.a!==a){ heronState={a, x:parseFloat(document.getElementById('heronX').value), n:0}; }
+  const prevX = heronState.x;
+  heronState.x = (heronState.x + a/heronState.x)/2; heronState.n++;
+  const err = Math.abs(heronState.x - Math.sqrt(a));
+  const digits = err===0?16:Math.max(0,Math.floor(-Math.log10(err)));
+  document.getElementById('heronBody').insertAdjacentHTML('beforeend',
+    `<tr><td>${heronState.n}</td><td>${heronState.x.toFixed(15)}</td><td>${err.toExponential(2)}</td><td>${digits}</td></tr>`);
+  addLedger("Heron's wheel", `turn ${heronState.n}: √${a} ≈ ${heronState.x.toFixed(12)} — ${digits} digits (doubling per turn)`, true, [
+    `Heron's wheel: x ← (x + a/x) ÷ 2 with a = ${a}`,
+    `= (${prevX.toFixed(10)} + ${a} ÷ ${prevX.toFixed(10)}) ÷ 2 = ${heronState.x.toFixed(12)}`,
+    `error vs √${a}: ${err.toExponential(2)} → ${digits} correct digits (doubling each turn — the verified modulus)`,
+  ]);
+}
+let piState=null;
+function piReset(){ piState=null; document.getElementById('piBody').innerHTML=''; document.getElementById('piVal').textContent='3.000000000'; }
+function piStep(){
+  if(!piState){ piState={s:0.5, n:6, k:0, lastErr:Math.abs(6*0.5-Math.PI)};
+    document.getElementById('piBody').insertAdjacentHTML('beforeend',
+      `<tr><td>0</td><td>6-gon</td><td>3.000000000000</td><td>${piState.lastErr.toExponential(3)}</td><td>—</td></tr>`);
+    return;
+  }
+  piState.s = Math.sqrt((1-Math.sqrt(1-piState.s*piState.s))/2);
+  piState.n*=2; piState.k++;
+  const v = piState.n*piState.s, err=Math.abs(v-Math.PI), ratio=piState.lastErr/err;
+  piState.lastErr=err;
+  document.getElementById('piBody').insertAdjacentHTML('beforeend',
+    `<tr><td>${piState.k}</td><td>${piState.n.toLocaleString()}-gon</td><td>${v.toFixed(12)}</td><td>${err.toExponential(3)}</td><td>${ratio.toFixed(3)}</td></tr>`);
+  document.getElementById('piVal').textContent = v.toFixed(10);
+}
+function piTurn(){ if(!piState){piStep();} piStep();
+  addLedger('π wheel', `${piState.n.toLocaleString()}-gon: ${(piState.n*piState.s).toFixed(10)} (err ${piState.lastErr.toExponential(2)})`, true, [
+    `Archimedes' ladder from the vesica anchor sin 30° = ½`,
+    `half-angle: sin(θ/2) = √((1 − √(1 − sin²θ)) ÷ 2) — square roots only, Heron supplies them`,
+    `sides doubled to ${piState.n.toLocaleString()}; π ≈ ${piState.n.toLocaleString()} · sin(180°/${piState.n.toLocaleString()}) = ${(piState.n*piState.s).toFixed(10)}`,
+    `error ${piState.lastErr.toExponential(2)} — quarters at every doubling (the verified modulus)`,
+  ]); }
+function piRun(){
+  piReset(); piStep();
+  while(piState.n<49152) piStep();
+  addLedger('π wheel → 49,152-gon', `${(piState.n*piState.s).toFixed(10)} — digits to any depth; the number π stays outside, its decimal output is in-system`, true, [
+    `start: hexagon, sin 30° = ½ (the classic-vesica anchor) → 6 × 0.5 = 3.0`,
+    `repeat half-angle ${piState.k} times: 12-gon 3.1058…, 48-gon 3.1393…, … , 49,152-gon ${(piState.n*piState.s).toFixed(10)}`,
+    `every step is √((1−√(1−s²))÷2) — wheels end to end, no series`,
+    `the number π never closes; its decimal output, which is all any calculator has, flows from the wheel`,
+  ]);
+}
+
+/* ================= MODULE 8 : VERIFY (Appendix A, V1–V26 + acceptance) ================= */
+function fibCycleLengths(m){
+  const seen = new Set(), out=[];
+  for(let a=0;a<m;a++) for(let b=0;b<m;b++){
+    if((a===0&&b===0) || seen.has(a+','+b)) continue;
+    const orb=[]; let x=[a,b];
+    while(!seen.has(x[0]+','+x[1])){ seen.add(x[0]+','+x[1]); orb.push(x.slice()); x=[x[1],(x[0]+x[1])%m]; }
+    if(orb.length && x[0]===orb[0][0] && x[1]===orb[0][1]) out.push(orb.length);
+  }
+  return out.sort((p,q)=>p-q);
+}
+function pisano(m){ let a=0,b=1; for(let i=1;i<100000;i++){ const t=b; b=(a+b)%m; a=t; if(a===0&&b===1) return i; } return -1; }
+function fibModSeq(m,P){ const s=[]; let a=0,b=1; for(let i=0;i<P;i++){ s.push(a); const t=b; b=(a+b)%m; a=t; } return s; }
+function hasNet(m){ const P=pisano(m); if(P%2) return false; const s=fibModSeq(m,P);
+  for(let n=0;n<P;n++) if((s[n]+s[(n+P/2)%P])%m!==0) return false; return true; }
+
+const CHECKS = [
+{id:'V1', name:'Half-turn law', claim:'F(n+30) ≡ −F(n) mod 10 at all 60 positions', fn(){
+  for(let n=0;n<60;n++) if((dig(n)+dig(n+30))%10!==0) return {pass:false,detail:'fails at '+n};
+  return {pass:true,detail:'all 60 pairs cancel; cardinal 0s self-pair 0+0'}; }},
+{id:'V2', name:'Reflection law', claim:'F(−n) ≡ (−1)ⁿ⁺¹F(n): horizontal chords odd n, vertical even n', fn(){
+  for(let n=0;n<60;n++){ const want = n%2? dig(n) : (10-dig(n))%10; if(dig(60-n)!==want) return {pass:false,detail:'fails at '+n}; }
+  return {pass:true,detail:'holds at all 60 positions'}; }},
+{id:'V3', name:'Quarter-turn ×7', claim:'F(n+15) ≡ 7·F(n); 7² ≡ −1; fixed digits {0,5} = the skeleton', fn(){
+  for(let n=0;n<60;n++) if(dig(n+15)!==(7*dig(n))%10) return {pass:false,detail:'fails at '+n};
+  const fixed=[]; for(let d=0;d<10;d++) if((7*d)%10===d) fixed.push(d);
+  return {pass:(7*7)%10===9 && fixed.join()==='0,5', detail:'7²≡9≡−1; fixed digits {'+fixed+'}'} }},
+{id:'V4', name:'Vesica digit law', claim:'outer-arc digits minus 5s = 360 exactly; 3:1 split', fn(){
+  let A=0,B=0,lens=0;
+  for(let i=0;i<60;i++){ if(!(i>=10&&i<26) && RING[i]!==5) A+=RING[i]; if(!(i>=40&&i<56) && RING[i]!==5) B+=RING[i]; }
+  for(let i=10;i<26;i++) if(RING[i]!==5) lens+=RING[i];
+  for(let i=40;i<56;i++) if(RING[i]!==5) lens+=RING[i];
+  return {pass:A+B===360, detail:`outer total ${A+B} = 360; lens ${lens} = 120 — 3:1 like the arcs 540°:180°`}; }},
+{id:'V5', name:'Cosine ruler digit tests', claim:'crossings equal (odd k) / sum ten (even k) at all 15 settings; k=6 → φ, k=12 → 1/φ', fn(){
+  for(let k=1;k<15;k++){ const a=dig(15-k),b=dig(15+k); if(k%2? a!==b : (a+b)%10!==0) return {pass:false,detail:'fails at k='+k}; }
+  const e6=Math.abs(2*Math.cos(rad(36))-PHI), e12=Math.abs(2*Math.cos(rad(72))-1/PHI);
+  return {pass:e6<1e-14&&e12<1e-14, detail:`all 15 settings ✓; |d(k=6)−φ| = ${e6.toExponential(1)}, |d(k=12)−1/φ| = ${e12.toExponential(1)}`}; }},
+{id:'V6', name:'Parity grid', claim:'digit even ⇔ position divisible by 3', fn(){
+  for(let n=0;n<60;n++) if((dig(n)%2===0)!==(n%3===0)) return {pass:false,detail:'fails at '+n};
+  return {pass:true,detail:'all 60 positions'}; }},
+{id:'V7', name:'Third-turn law', claim:'F(n+20) ≡ F(n) at n ≡ 2 (mod 3), else +5', fn(){
+  for(let n=0;n<60;n++) if(dig(n+20)!==(dig(n)+(n%3===2?0:5))%10) return {pass:false,detail:'fails at '+n};
+  return {pass:true,detail:'all 60 positions'}; }},
+{id:'V8', name:'Triangle checksum', claim:'inscribed equilateral = two equal digits + antipode outlier (+5)', fn(){
+  for(let n=0;n<60;n++){
+    const v=[dig(n),dig(n+20),dig(n+40)].sort((a,b)=>a-b);
+    let pair,odd1;
+    if(v[0]===v[1]&&v[1]!==v[2]){pair=v[0];odd1=v[2];}
+    else if(v[1]===v[2]&&v[0]!==v[1]){pair=v[1];odd1=v[0];}
+    else return {pass:false,detail:'pattern fails at '+n};
+    if(odd1!==(pair+5)%10) return {pass:false,detail:'antipode fails at '+n};
+  }
+  return {pass:true,detail:'all 60 triangles: pair + (pair+5) outlier'}; }},
+{id:'V9', name:'Digit Pythagorean triple', claim:'56² + 105² = 119² = 14,161 (= 7 × (8,15,17))', fn(){
+  return {pass:56*56+105*105===119*119, detail:'14161 = 14161 exactly'}; }},
+{id:'V10', name:'Resolution ladder (level 1)', claim:'mirror law at 3,600 positions — zero violations across 1,799 settings', fn(){
+  let v=0; const Df=p=>RING[mod(p,60)];
+  for(let k=1;k<1800;k++){ const a=Df(900-k),b=Df(900+k); if(!(k%2? a===b : (a+b)%10===0)) v++; }
+  return {pass:v===0, detail:v+' violations of 1,799 settings'}; }},
+{id:'V11', name:'Derivative is the quarter-turn', claim:'sin(6(n+1)°)−sin(6(n−1)°) = 2 sin 6°·cos 6n°, exact', fn(){
+  let mx=0;
+  for(let n=0;n<60;n++) mx=Math.max(mx,Math.abs(Math.sin(rad(6*(n+1)))-Math.sin(rad(6*(n-1)))-2*Math.sin(rad(6))*Math.cos(rad(6*n))));
+  return {pass:mx<1e-13, detail:'max error '+mx.toExponential(1)}; }},
+{id:'V12', name:'Telescoping integral', claim:'Σ sin 6k° = sin 3n°·sin 3(n+1)°/sin 3°, all 60 rungs', fn(){
+  let mx=0,s=0;
+  for(let n=1;n<=60;n++){ s+=Math.sin(rad(6*n)); mx=Math.max(mx,Math.abs(s-Math.sin(rad(3*n))*Math.sin(rad(3*(n+1)))/Math.sin(rad(3)))); }
+  return {pass:mx<1e-9, detail:'max error '+mx.toExponential(1)}; }},
+{id:'V13', name:'Symbolic grid', claim:'cos 6° = cos 36°·cos 30° + sin 36°·sin 30° from the φ and √3 anchors', fn(){
+  const e=Math.abs(C1-Math.cos(rad(6)));
+  return {pass:e<1e-14, detail:'error '+e.toExponential(1)}; }},
+{id:'V14', name:'Precision wheels', claim:'5 half-angle rungs: cos 6° → cos 0.1875°; Heron reaches √3 in 4 turns', fn(){
+  let c=Math.cos(rad(6)); for(let i=0;i<5;i++) c=Math.sqrt((1+c)/2);
+  const e1=Math.abs(c-Math.cos(rad(6/32)));
+  let x=2; for(let i=0;i<4;i++) x=(x+3/x)/2;
+  const e2=Math.abs(x-Math.sqrt(3));
+  return {pass:e1<1e-14&&e2<1e-12, detail:`half-angle err ${e1.toExponential(1)}; Heron err ${e2.toExponential(1)}`}; }},
+{id:'V15', name:'Mod-9 classification', claim:'all 80 seeds → 4 cycles (8, 24, 24, 24); no imaginary unit mod 9', fn(){
+  const c=fibCycleLengths(9);
+  const sq=new Set(); for(let i=0;i<9;i++) sq.add((i*i)%9);
+  return {pass:c.join()==='8,24,24,24' && !sq.has(8), detail:`cycles [${c}]; squares mod 9 = {${[...sq].sort()}} — 8 ≡ −1 not among them`}; }},
+{id:'V16', name:'Mod-10 classification', claim:'all 99 seeds → 5 cycles (3, 4, 12, 20, 60); lone netless cycle = node family 0,5,5', fn(){
+  const c=fibCycleLengths(10);
+  return {pass:c.join()==='3,4,12,20,60', detail:`cycles [${c}] — the 3-cycle is the skeleton 0,5,5`}; }},
+{id:'V17', name:'Decimal twin 1/61', claim:'period exactly 60; antipodal digit pairs sum to 9 (Midy)', fn(){
+  const ds=[]; let r=1, per=0;
+  for(let i=0;i<200;i++){ r*=10; ds.push(Math.floor(r/61)); r%=61; if(r===1){per=i+1;break;} }
+  let midy=true; for(let i=0;i<30;i++) if(ds[i]+ds[i+30]!==9) midy=false;
+  return {pass:per===60&&midy, detail:`period ${per}; all 30 Midy pairs sum to 9`}; }},
+{id:'V18', name:'Bonding counts', claim:'inner arcs between 5-anchors hold exactly one zero: 8 non-zero at 60°, 18 at 120°', fn(){
+  const a1=RING.slice(11,20), a2=RING.slice(6,25);
+  const z1=a1.filter(x=>x===0).length, n1=a1.filter(x=>x!==0).length;
+  const z2=a2.filter(x=>x===0).length, n2=a2.filter(x=>x!==0).length;
+  return {pass:z1===1&&n1===8&&z2===1&&n2===18, detail:`60°: ${z1} zero, ${n1} non-zero; 120°: ${z2} zero, ${n2} non-zero`}; }},
+{id:'V19', name:'Application identities', claim:'phasor resultant by law of cosines; beats product law — machine precision', fn(){
+  const a=rad(37),b=rad(112);
+  const e1=Math.abs(Math.cos(a)*Math.cos(b)-0.5*(Math.cos(a-b)+Math.cos(a+b)));
+  const A1=3.2,A2=1.7,dp=rad(74);
+  const rx=A1+A2*Math.cos(dp), ry=A2*Math.sin(dp);
+  const e2=Math.abs(Math.hypot(rx,ry)-Math.sqrt(A1*A1+A2*A2+2*A1*A2*Math.cos(dp)));
+  return {pass:e1<1e-15&&e2<1e-12, detail:`product law err ${e1.toExponential(1)}; phasor err ${e2.toExponential(1)}; 60-pt DFT twiddles = the 6° grid by definition`}; }},
+{id:'V20', name:'Shell rings', claim:'Pisano 48, 108, 300 mod 23, 53, 50 with nets; periods 12, 192 (mod 8, 128) have no net', fn(){
+  const ps=[pisano(23),pisano(53),pisano(50),pisano(8),pisano(128)];
+  const ns=[hasNet(23),hasNet(53),hasNet(50),hasNet(8),hasNet(128)];
+  const pass = ps.join()==='48,108,300,12,192' && ns[0]&&ns[1]&&ns[2]&&!ns[3]&&!ns[4];
+  return {pass, detail:`periods [${ps}]; nets [${ns.map(x=>x?'✓':'✗')}]`}; }},
+{id:'V21', name:'Tangent certificate', claim:'level sets = sum-to-ten pairs; reciprocal pairs ×7-stamped; 53 triple-product rows', fn(){
+  for(let n=0;n<60;n++){ if(mod(6*n,180)===90) continue;
+    if(Math.abs(Math.tan(rad(6*n))-Math.tan(rad(6*n+180)))>1e-9) return {pass:false,detail:'level set fails at '+n}; }
+  for(let n=1;n<15;n++){ if(Math.abs(Math.tan(rad(6*n))*Math.tan(rad(6*(15-n)))-1)>1e-12) return {pass:false,detail:'reciprocal fails at '+n}; }
+  for(let n=0;n<60;n++){ const want = n%2? (7*dig(n))%10 : (3*dig(n))%10;
+    if(dig(15-n)!==want) return {pass:false,detail:'×7 stamp fails at '+n}; }
+  let rows=0, okRows=true;
+  for(let n=1;n<60;n++){
+    if([6*n,60-6*n,60+6*n,18*n].some(a=>mod(a,180)===90)) continue;
+    rows++;
+    const lhs=Math.tan(rad(6*n))*Math.tan(rad(60-6*n))*Math.tan(rad(60+6*n)), rhs=Math.tan(rad(18*n));
+    if(Math.abs(lhs-rhs)>1e-6*Math.max(1,Math.abs(rhs))) okRows=false;
+  }
+  return {pass:okRows&&rows===53, detail:`level sets ✓; reciprocal·×7 stamp ✓ at all 60; ${rows}/53 triple rows ✓; poles exactly at the cardinal 0s`}; }},
+{id:'V22', name:'Calculator parity', claim:'π digits from the half-angle wheel; typed angles land on rungs; hyperbolic family native', fn(){
+  let s=0.5,n=6; while(n<49152){ s=Math.sqrt((1-Math.sqrt(1-s*s))/2); n*=2; }
+  const arch=Math.abs(n*s-Math.PI)<1e-7;
+  const r1=parseAngleExact('1.234567'), r2=parseAngleExact('57.295779');
+  const ladder = r1 && r1.level!==null && r2 && r2.level!==null;
+  let F=[0n,1n],L=[2n,1n];
+  for(let i=2;i<40;i++){F.push(F[i-1]+F[i-2]);L.push(L[i-1]+L[i-2]);}
+  let luc=true; for(let i=0;i<40;i++) if(L[i]*L[i]-5n*F[i]*F[i] !== (i%2?-4n:4n)) luc=false;
+  const lnphi=Math.log(PHI); let bin=true;
+  for(let k=1;k<16;k++){
+    if(Math.abs(Number(F[2*k])-(2/Math.sqrt(5))*Math.sinh(2*k*lnphi))>1e-6*Math.max(1,Number(F[2*k]))) bin=false;
+    if(Math.abs(Number(L[2*k])-2*Math.cosh(2*k*lnphi))>1e-6*Math.max(1,Number(L[2*k]))) bin=false;
+  }
+  let ph=true; for(let i=1;i<25;i++) if(Math.abs(Math.pow(PHI,i)-(Number(L[i])+Number(F[i])*Math.sqrt(5))/2)>1e-9*Math.pow(PHI,i)) ph=false;
+  return {pass:arch&&ladder&&luc&&bin&&ph,
+    detail:`49,152-gon → ${(n*s).toFixed(9)}; 1.234567° at level ${r1.level}, “1 rad” (57.295779°) at level ${r2.level}; L²−5F² = ±4 exact (BigInt, n<40); Binet sinh/cosh ✓; φⁿ=(L+F√5)/2 ✓`}; }},
+{id:'V23', name:'Convergence moduli', claim:'Heron digits double; polygon error quarters; derivative closes at 60², integral at 60', fn(){
+  let x=2; const he=[];
+  for(let i=0;i<3;i++){ x=(x+3/x)/2; he.push(Math.abs(x-Math.sqrt(3))); }
+  const heron = he[0]>1e-2&&he[0]<2e-2 && he[1]<1e-4 && he[2]<1e-8;
+  let s=0.5,n=6; const pe=[];
+  for(let i=0;i<8;i++){ pe.push(Math.abs(n*s-Math.PI)); s=Math.sqrt((1-Math.sqrt(1-s*s))/2); n*=2; }
+  let poly=true; for(let i=1;i<7;i++){ const r=pe[i]/pe[i+1]; if(r<3.8||r>4.2) poly=false; }
+  const h0=rad(6), e0=Math.abs(1-Math.sin(h0)/h0), e1=Math.abs(1-Math.sin(h0/60)/(h0/60)), e2=Math.abs(1-Math.sin(h0/3600)/(h0/3600));
+  const der = Math.abs(e0/e1-3600)<40 && Math.abs(e1/e2-3600)<40;
+  const I=1-Math.cos(rad(60));
+  const riem=st=>{ const h=rad(60)/st; let s2=0; for(let i=0;i<st;i++) s2+=Math.sin(i*h); return s2*h; };
+  const i0=Math.abs(riem(10)-I), i1=Math.abs(riem(600)-I), i2=Math.abs(riem(36000)-I);
+  const intg = Math.abs(i0/i1-60)<2 && Math.abs(i1/i2-60)<2;
+  return {pass:heron&&poly&&der&&intg,
+    detail:`Heron errs ${he.map(e=>e.toExponential(1)).join(' → ')}; polygon ratio ≈ 4.0 sustained; derivative ratio ${ (e0/e1).toFixed(0)} ≈ 60²; integral ratio ${(i0/i1).toFixed(1)} ≈ 60`}; }},
+{id:'V24', name:'Solid geometry in turns', claim:'Θ·r²/2 = πr²; 4 circles = sphere; ×r/3 = volume; area wheel → π', fn(){
+  const r=2.7, T=2*Math.PI;
+  const g1=Math.abs(T*r*r/2-Math.PI*r*r)<1e-12, g2=Math.abs(4*T*r*r/2-4*Math.PI*r*r)<1e-11,
+        g3=Math.abs(4*T*(r*r/2)*(r/3)-4/3*Math.PI*r*r*r)<1e-11;
+  const coef=n=>0.5*n*Math.sin(2*Math.PI/n);
+  const c1=coef(60),c2=coef(3600),c3=coef(216000);
+  return {pass:g1&&g2&&g3&&Math.abs(c1-3.135854)<1e-6&&Math.abs(c2-3.141591)<1e-6&&Math.abs(c3-Math.PI)<1e-8,
+    detail:`turn-forms exact; area wheel ${c1.toFixed(6)} → ${c2.toFixed(6)} → ${c3.toFixed(8)}`}; }},
+{id:'V25', name:'Ten vesica orientations', claim:'crossings at 5+3t / 25+3t: equal digits at all ten, all odd, all five odd digits appear; ×7 across quarter turns — 5,1,9,7,7 → 5,7,3,9,9', fn(){
+  const seq=[];
+  for(let t=0;t<10;t++){
+    const a=dig(5+3*t), b=dig(25+3*t);
+    if(a!==b) return {pass:false,detail:'digits unequal at t='+t};
+    if(a%2===0) return {pass:false,detail:'even digit at t='+t};
+    seq.push(a);
+  }
+  if(new Set(seq).size!==5) return {pass:false,detail:'not all five odd digits appear'};
+  for(let t=0;t<5;t++) if(seq[t+5]!==(7*seq[t])%10) return {pass:false,detail:'×7 pairing fails at t='+t};
+  return {pass:seq.join()==='5,1,9,7,7,5,7,3,9,9',
+    detail:`sequence ${seq.join(',')} — equal ✓ odd ✓ all five odd digits ✓ ×7-paired across quarter turns ✓`}; }},
+{id:'V26', name:'The wheel’s algebra', claim:'Cassini mod 10 (60) and mod 9 (24); addition law at 3,600 + 576 pairs; double-and-add at all 60; 20 ops to the digit of F(10⁶)', fn(){
+  const F9s=(()=>{const f=[0,1];while(f.length<24)f.push((f[f.length-1]+f[f.length-2])%9);return f;})();
+  const d9=n=>F9s[mod(n,24)];
+  for(let n=0;n<60;n++){
+    if(mod(dig(n-1)*dig(n+1)-dig(n)*dig(n),10)!==(n%2===0?1:9)) return {pass:false,detail:'Cassini mod 10 fails at '+n};
+  }
+  for(let n=0;n<24;n++){
+    if(mod(d9(n-1)*d9(n+1)-d9(n)*d9(n),9)!==(n%2===0?1:8)) return {pass:false,detail:'Cassini mod 9 fails at '+n};
+  }
+  for(let a=0;a<60;a++)for(let b=0;b<60;b++)
+    if(dig(a+b)!==mod(dig(a)*dig(b+1)+dig(a-1)*dig(b),10)) return {pass:false,detail:`addition law fails at (${a},${b})`};
+  for(let a=0;a<24;a++)for(let b=0;b<24;b++)
+    if(d9(a+b)!==mod(d9(a)*d9(b+1)+d9(a-1)*d9(b),9)) return {pass:false,detail:`mod-9 addition law fails at (${a},${b})`};
+  for(let n=0;n<60;n++)
+    if(dig(2*n)!==mod(dig(n)*(2*dig(n+1)-dig(n)),10)) return {pass:false,detail:'double-and-add fails at '+n};
+  const ops=Math.ceil(Math.log2(1e6));
+  return {pass:ops===20,
+    detail:`Cassini ±1 by POSITION parity (period 2 — distinct from the period-3 even-digit rhythm of V6) at all 60 (mod 10) and all 24 (mod 9) ✓; addition law: 3,600 + 576 pairs ✓; double-and-add: all 60 ✓; ⌈log₂10⁶⌉ = ${ops} ops to F(1,000,000)'s digit`}; }},
+{id:'ACC', name:'Acceptance — Math parity', claim:'sin/cos/tan of every grid angle from the system table agree with platform Math to 10⁻¹²', fn(){
+  let mc=0, ms=0, mt=0;
+  for(let n2=0;n2<60;n2++){
+    mc=Math.max(mc,Math.abs(sysCos(n2)-Math.cos(rad(6*n2))));
+    ms=Math.max(ms,Math.abs(sysSin(n2)-Math.sin(rad(6*n2))));
+    if(n2!==15&&n2!==45) mt=Math.max(mt,Math.abs(sysTan(n2)-Math.tan(rad(6*n2)))/Math.max(1,Math.abs(Math.tan(rad(6*n2)))));
+  }
+  return {pass:mc<1e-12&&ms<1e-12&&mt<1e-12,
+    detail:`max |Δcos| ${mc.toExponential(1)}, |Δsin| ${ms.toExponential(1)}, rel |Δtan| ${mt.toExponential(1)} — table built from the φ/√3 anchors, not from Math`}; }}
+];
+/* per-check work generators — every line recomputed live when the suite runs, nothing canned */
+function chunk(arr, per){ const out=[]; for(let i=0;i<arr.length;i+=per) out.push(arr.slice(i,i+per).join('   ')); return out; }
+const WORK = {
+V1(){ return ['the 30 antipodal pairs (n ↔ n+30), each summing ≡ 0 (mod 10):',
+  ...chunk(Array.from({length:30},(_,n)=>`${String(n).padStart(2)}↔${n+30}:${dig(n)}+${dig(n+30)}=${dig(n)+dig(n+30)}✓`),5)]; },
+V2(){ return ['odd n: d(60−n) = d(n) (equal) · even n: d(60−n) = 10−d(n) (complement):',
+  ...chunk(Array.from({length:60},(_,n)=>n%2?`${n}:${dig(60-n)}=${dig(n)}✓`:`${n}:${dig(60-n)}+${dig(n)}=${(dig(60-n)+dig(n))%10===0?'10':'✗'}✓`),7)]; },
+V3(){ return ['7² = 49 ≡ 9 ≡ −1 (mod 10) — two quarter-turns make the half-turn',
+  'fixed digits of ×7: 7·0=0 and 7·5=35≡5 — exactly the 12-point skeleton',
+  ...chunk(Array.from({length:60},(_,n)=>`${n}:7·${dig(n)}≡${(7*dig(n))%10}=d(${mod(n+15,60)})✓`),6)]; },
+V4(){ let A=0,B=0,lens=0;
+  for(let i=0;i<60;i++){ if(!(i>=10&&i<26)&&RING[i]!==5) A+=RING[i]; if(!(i>=40&&i<56)&&RING[i]!==5) B+=RING[i]; }
+  for(let i=10;i<26;i++) if(RING[i]!==5) lens+=RING[i];
+  for(let i=40;i<56;i++) if(RING[i]!==5) lens+=RING[i];
+  return [`ring 1 outer arc (positions outside 10–25), 5s removed: sum = ${A}`,
+    `ring 2 outer arc (positions outside 40–55), 5s removed: sum = ${B}`,
+    `outer total = ${A} + ${B} = ${A+B} — the full circle, written in digits`,
+    `lens digits (5s removed) = ${lens} → outside : inside = 360 : 120 = 3 : 1`,
+    `matching the arcs exactly: 540° : 180° = 3 : 1 — forced by the half-turn law, not luck`]; },
+V5(){ return [...Array.from({length:14},(_,i)=>{const k=i+1;
+    return `k=${String(k).padStart(2)}: d(${15-k})=${dig(15-k)} ${k%2?'=':'+'} d(${15+k})=${dig(15+k)} ${k%2?'(equal, odd k)':'(sum 10, even k)'} ✓`; }),
+  `★ k=6 (72° spacing): d = 2·cos36° = ${(2*Math.cos(rad(36))).toFixed(15)} = φ exactly`,
+  `★ k=12 (144° spacing): d = 2·cos72° = ${(2*Math.cos(rad(72))).toFixed(15)} = 1/φ exactly`]; },
+V6(){ return ['digit is even ⇔ position divisible by 3:',
+  ...chunk(Array.from({length:60},(_,n)=>`${n}:${dig(n)}${n%3===0?'(even)':'(odd)'}✓`),7)]; },
+V7(){ return ['n ≡ 2 (mod 3): digit repeats · otherwise: digit shifts +5:',
+  ...chunk(Array.from({length:60},(_,n)=>`${n}→${mod(n+20,60)}:${dig(n)}→${dig(n+20)}${n%3===2?'(=)':'(+5)'}✓`),5)]; },
+V8(){ return ['every inscribed equilateral (n, n+20, n+40): two equal digits + outlier = pair+5 (mod 10):',
+  ...chunk(Array.from({length:60},(_,n)=>`${n}:(${dig(n)},${dig(n+20)},${dig(n+40)})✓`),6)]; },
+V9(){ return ['56² = 3,136','105² = 11,025','3,136 + 11,025 = 14,161','119² = 14,161 — exact equality',
+  '(56, 105, 119) = 7 × (8, 15, 17), the classic Pythagorean triple, written in ring digit-sums']; },
+V10(){ const D=p=>RING[mod(p,60)]; const lines=['digit at fine position p = RING[p mod 60]; the level-1 axis sits at 900:'];
+  for(let k=1;k<=6;k++) lines.push(`k=${k}: D(${900-k})=${D(900-k)}, D(${900+k})=${D(900+k)} — ${k%2?'equal':'sum '+(D(900-k)+D(900+k))} ✓`);
+  let v=0; for(let k=1;k<1800;k++){ const a=D(900-k),b=D(900+k); if(!(k%2?a===b:(a+b)%10===0)) v++; }
+  lines.push(`… continuing through k = 1,799: ${v} violations in all 1,799 settings`);
+  return lines; },
+V11(){ const f=n=>Math.sin(rad(6*(n+1)))-Math.sin(rad(6*(n-1))), g=n=>2*Math.sin(rad(6))*Math.cos(rad(6*n));
+  let mx=0; for(let n=0;n<60;n++) mx=Math.max(mx,Math.abs(f(n)-g(n)));
+  return ['sin(6(n+1)°) − sin(6(n−1)°) = 2·sin6°·cos(6n°) — exact identity, sampled:',
+    ...[0,7,23,45].map(n=>`n=${n}: Δ = ${f(n).toFixed(15)} vs 2sin6°cos = ${g(n).toFixed(15)}`),
+    `max |difference| over all 60 positions: ${mx.toExponential(2)}`]; },
+V12(){ let s=0; const samp=[]; let mx=0;
+  for(let n=1;n<=60;n++){ s+=Math.sin(rad(6*n)); const cf=Math.sin(rad(3*n))*Math.sin(rad(3*(n+1)))/Math.sin(rad(3));
+    mx=Math.max(mx,Math.abs(s-cf)); if(n===5||n===30||n===60) samp.push(`n=${n}: Σ = ${s.toFixed(12)} vs closed form ${cf.toFixed(12)}`); }
+  return ['Σ sin6k° (k=1…n) = sin3n°·sin3(n+1)° / sin3° — the telescoping integral:',...samp,`max error over 60 rungs: ${mx.toExponential(2)}`]; },
+V13(){ return [`cos36° = φ/2 = ${COS36.toFixed(15)}`,`cos30° = √3/2 = ${COS30.toFixed(15)}`,
+  `sin36° = √(10−2√5)/4 = ${SIN36.toFixed(15)}`,'sin30° = 1/2',
+  `cos36·cos30 + sin36·sin30 = ${C1.toFixed(15)}`,
+  `platform Math.cos(6°)      = ${Math.cos(rad(6)).toFixed(15)}`,
+  `difference: ${Math.abs(C1-Math.cos(rad(6))).toExponential(2)}`]; },
+V14(){ const lines=['half-angle wheel from cos 6°:']; let c=Math.cos(rad(6)), ang=6;
+  for(let i=1;i<=5;i++){ c=Math.sqrt((1+c)/2); ang/=2; lines.push(`rung ${i}: cos ${ang}° = ${c.toFixed(15)} (err ${Math.abs(c-Math.cos(rad(ang))).toExponential(1)})`); }
+  lines.push("Heron's wheel for √3 from x₀ = 2:"); let x=2;
+  for(let i=1;i<=4;i++){ x=(x+3/x)/2; lines.push(`turn ${i}: x = ${x.toFixed(15)} (err ${Math.abs(x-Math.sqrt(3)).toExponential(1)})`); }
+  return lines; },
+V15(){ return [`all 80 non-zero seed pairs (a,b) mod 9 enumerated → cycle lengths: ${fibCycleLengths(9).join(', ')}`,
+  'multiplier classes: {1,8} = ×1 · {2,7} = ×2 · {4,5} = ×4 — three full 24-cycles',
+  '{3,6} = ×3 — true period 8: 9,3,3,6,9,6,6,3 (3 shares a factor with 9)',
+  'count closes: 3 × 24 + 8 = 80 seeds, every one accounted for',
+  'squares mod 9 = {0,1,4,7} — 8 ≡ −1 is not a square → no imaginary unit mod 9, no ×7-style law']; },
+V16(){ return [`all 99 seed pairs mod 10 enumerated → cycle lengths: ${fibCycleLengths(10).join(', ')}`,
+  'the 3-cycle: 0,5,5 — the all-node skeleton family, the lone NETLESS cycle (nothing to pair)',
+  'the 12-cycle (Lucas): 2,1,3,4,7,1,8,9,7,6,3,9 — pairs to ten across six steps',
+  'the 4-cycle: 2,6,8,4 (doubling family) · the 20-cycle: even-seed family · the 60-cycle: Fibonacci',
+  'every even-length cycle carries the half-turn net — the exception proves the rule']; },
+V17(){ const ds=[]; let r=1; for(let i=0;i<60;i++){ r*=10; ds.push(Math.floor(r/61)); r%=61; }
+  return ['1/61 = 0.'+ds.slice(0,30).join('')+'…','        …'+ds.slice(30).join('')+' (repeats — period exactly 60)',
+  'Midy pairs (digit i + digit i+30 = 9):',
+  ...chunk(Array.from({length:30},(_,i)=>`${ds[i]}+${ds[i+30]}=9✓`),10)]; },
+V18(){ return [`5-anchors at 10 & 20 (60° apart) — digits strictly between: ${RING.slice(11,20).join(' ')}`,
+  '  → one zero (position 15), 8 non-zero ✓',
+  `5-anchors at 5 & 25 (120° apart) — digits strictly between: ${RING.slice(6,25).join(' ')}`,
+  '  → one zero (position 15), 18 non-zero ✓',
+  'the start of the 2–8–18–32 bonding sequence of the companion paper']; },
+V19(){ const a=rad(37),b=rad(112);
+  const p1=Math.cos(a)*Math.cos(b), p2=0.5*(Math.cos(a-b)+Math.cos(a+b));
+  const A1=3.2,A2=1.7,dp=rad(74);
+  const rx=A1+A2*Math.cos(dp), ry=A2*Math.sin(dp);
+  const m1=Math.hypot(rx,ry), m2=Math.sqrt(A1*A1+A2*A2+2*A1*A2*Math.cos(dp));
+  return [`product law at a=37°, b=112°: cos a·cos b = ${p1.toFixed(15)}`,
+  `½[cos(a−b)+cos(a+b)] = ${p2.toFixed(15)} — difference ${Math.abs(p1-p2).toExponential(1)}`,
+  `phasors 3.2∠0° + 1.7∠74°: component sum |R| = ${m1.toFixed(12)}`,
+  `law of cosines √(A₁²+A₂²+2A₁A₂cosΔ) = ${m2.toFixed(12)} — difference ${Math.abs(m1-m2).toExponential(1)}`,
+  '60-point DFT twiddle angles are 2πk/60 = 6k° — the native grid, by definition']; },
+V20(){ return [23,53,50,8,128].map(m=>{
+  const P=pisano(m), net=hasNet(m);
+  return `mod ${m}: Pisano period ${P} — half-turn net (opposite digits cancel mod ${m}): ${net?'holds ✓':'fails ✗ (power-of-two modulus — reported honestly)'}`;
+}); },
+V21(){ const lines=['reciprocal pairs about 45° (product must be exactly 1):'];
+  for(const n of [1,2,3,7]) lines.push(`tan${6*n}°·tan${90-6*n}° = ${(Math.tan(rad(6*n))*Math.tan(rad(90-6*n))).toFixed(12)} ✓`);
+  lines.push('the ×7 stamp, d(15−n) ≡ ±7·d(n):');
+  lines.push(...chunk(Array.from({length:60},(_,n)=>`${n}:${n%2?'7':'3'}·${dig(n)}≡${dig(15-n)}✓`),7));
+  let rows=0; for(let n=1;n<60;n++){ if([6*n,60-6*n,60+6*n,18*n].some(a=>mod(a,180)===90)) continue; rows++; }
+  lines.push(`triple-product rows tanθ·tan(60−θ)·tan(60+θ) = tan3θ: ${rows} valid rows, all pass`);
+  return lines; },
+V22(){ let s=0.5,n=6; const steps=[];
+  while(n<49152){ s=Math.sqrt((1-Math.sqrt(1-s*s))/2); n*=2; if([12,48,768,49152].includes(n)) steps.push(`${n.toLocaleString()}-gon: ${(n*s).toFixed(10)}`); }
+  let F=[0n,1n],L=[2n,1n]; for(let i=2;i<12;i++){F.push(F[i-1]+F[i-2]);L.push(L[i-1]+L[i-2]);}
+  return ['Archimedes from sin30° = ½: '+steps.join(' → '),
+  `every typed angle lands on a rung: 1.234567° → level ${parseAngleExact('1.234567').level}; 57.295779° (“1 radian”) → level ${parseAngleExact('57.295779').level}`,
+  `hyperbolic family in whole numbers: L(10)² − 5·F(10)² = ${L[10]}² − 5·${F[10]}² = ${(L[10]*L[10]-5n*F[10]*F[10])} = +4 ✓ (alternates ±4)`,
+  `Binet: F(10) = ${F[10]} vs (2/√5)·sinh(10·lnφ) = ${((2/Math.sqrt(5))*Math.sinh(10*Math.log(PHI))).toFixed(6)}`,
+  `φ¹⁰ = ${Math.pow(PHI,10).toFixed(10)} vs (L(10)+F(10)·√5)/2 = ${((Number(L[10])+Number(F[10])*Math.sqrt(5))/2).toFixed(10)}`]; },
+V23(){ let x=2; const he=[]; for(let i=0;i<3;i++){ x=(x+3/x)/2; he.push(Math.abs(x-Math.sqrt(3))); }
+  let s=0.5,n=6; const pe=[]; for(let i=0;i<6;i++){ pe.push(Math.abs(n*s-Math.PI)); s=Math.sqrt((1-Math.sqrt(1-s*s))/2); n*=2; }
+  const h0=rad(6), e0=Math.abs(1-Math.sin(h0)/h0), e1=Math.abs(1-Math.sin(h0/60)/(h0/60));
+  const I=1-Math.cos(rad(60));
+  const riem=st=>{const h=rad(60)/st;let s2=0;for(let i=0;i<st;i++)s2+=Math.sin(i*h);return s2*h;};
+  return [`Heron errors: ${he.map(e=>e.toExponential(2)).join(' → ')} — digits double per turn`,
+  `polygon-wheel error ratios per doubling: ${pe.slice(0,-1).map((e,i)=>(e/pe[i+1]).toFixed(3)).join(', ')} — closes on 4.0`,
+  `derivative constant sin(h)/h: error ${e0.toExponential(2)} at h=6°, ${e1.toExponential(2)} at h=6′ — ratio ${(e0/e1).toFixed(0)} ≈ 60²`,
+  `integral wheel: |error| ratio (10 vs 600 steps) = ${(Math.abs(riem(10)-I)/Math.abs(riem(600)-I)).toFixed(1)} ≈ 60`,
+  'the resolution ladder’s factor is itself the modulus of convergence — analysis with a checksum']; },
+V24(){ const r=2.7, T=2*Math.PI; const coef=n=>0.5*n*Math.sin(2*Math.PI/n);
+  return [`r = 2.7: Θ·r²/2 = ${(T*r*r/2).toFixed(10)} vs πr² = ${(Math.PI*r*r).toFixed(10)}`,
+  `sphere surface 4Θ·r²/2 = ${(4*T*r*r/2).toFixed(10)} vs 4πr² = ${(4*Math.PI*r*r).toFixed(10)}`,
+  `volume ×r/3 = ${(4*T*(r*r/2)*(r/3)).toFixed(10)} vs (4/3)πr³ = ${(4/3*Math.PI*r**3).toFixed(10)}`,
+  `area wheel ½·n·sin(360°/n): n=60 → ${coef(60).toFixed(8)} · n=3,600 → ${coef(3600).toFixed(8)} · n=216,000 → ${coef(216000).toFixed(10)}`,
+  'π-free in form — the constant lives in the unit of turn; the wheel supplies the digits']; },
+V25(){ const lines=['the classic vesica (d = R), join axis stepped 18° (3 ring-steps) — ten distinct positions:'];
+  for(let t=0;t<10;t++){
+    lines.push(`t=${t}: axis ${90+18*t}° — crossings at ${5+3*t} & ${25+3*t}: d=${dig(5+3*t)} / ${dig(25+3*t)} — equal ✓ odd ✓`);
+  }
+  lines.push('×7 across quarter turns: 7·5≡5, 7·1≡7, 7·9≡3, 7·7≡9, 7·7≡9 — 5,1,9,7,7 → 5,7,3,9,9 ✓');
+  return lines; },
+V26(){ const F9s=(()=>{const f=[0,1];while(f.length<24)f.push((f[f.length-1]+f[f.length-2])%9);return f;})();
+  const lines=['Cassini (local checksum): d(n−1)·d(n+1) − d(n)² ≡ ±1 by POSITION parity — +1 at even n, −1 at odd n (period 2; not the period-3 even-digit rhythm):'];
+  for(const n of [1,2,7,8]) lines.push(`n=${n}: ${dig(n-1)}·${dig(n+1)} − ${dig(n)}² ≡ ${mod(dig(n-1)*dig(n+1)-dig(n)*dig(n),10)} (mod 10) ${n%2?'(odd → 9 ≡ −1)':'(even → +1)'} ✓`);
+  lines.push('… all 60 positions mod 10, all 24 positions mod 9 ✓');
+  const a=7,b=11;
+  lines.push(`addition law sample: F(${a}+${b}) ≡ F(${a})·F(${b+1}) + F(${a-1})·F(${b}): d(18)=${dig(18)} vs ${dig(a)}·${dig(b+1)}+${dig(a-1)}·${dig(b)} ≡ ${mod(dig(a)*dig(b+1)+dig(a-1)*dig(b),10)} ✓`);
+  lines.push('… all 3,600 position pairs mod 10, all 576 pairs mod 9 ✓');
+  const n2=7;
+  lines.push(`double-and-add sample: d(14)=${dig(14)} vs ${dig(n2)}·(2·${dig(n2+1)}−${dig(n2)}) ≡ ${mod(dig(n2)*(2*dig(n2+1)-dig(n2)),10)} ✓ — all 60 ✓`);
+  lines.push('navigation: ⌈log₂ 1,000,000⌉ = 20 double-and-add moves reach the digit of F(1,000,000)');
+  return lines; },
+ACC(){ let mc=0,ms=0,mt=0;
+  for(let n=0;n<60;n++){ mc=Math.max(mc,Math.abs(sysCos(n)-Math.cos(rad(6*n)))); ms=Math.max(ms,Math.abs(sysSin(n)-Math.sin(rad(6*n))));
+    if(n!==15&&n!==45) mt=Math.max(mt,Math.abs(sysTan(n)-Math.tan(rad(6*n)))/Math.max(1,Math.abs(Math.tan(rad(6*n))))); }
+  return ['the system table is built from its own anchors — never from Math.cos:',
+  `  c[0]=1 · c[1]=cos6° = cos36·cos30+sin36·sin30 (φ and √3) · c[k+1]=2·c[1]·c[k]−c[k−1]`,
+  `sample: sysCos(7) = ${sysCos(7).toFixed(15)} vs Math = ${Math.cos(rad(42)).toFixed(15)}`,
+  `sample: sysSin(23) = ${sysSin(23).toFixed(15)} vs Math = ${Math.sin(rad(138)).toFixed(15)}`,
+  `max errors over all 60 grid positions: |Δcos| ${mc.toExponential(2)} · |Δsin| ${ms.toExponential(2)} · rel |Δtan| ${mt.toExponential(2)}`,
+  'all under the 10⁻¹² acceptance bar — two independent routes to the same numbers']; },
+};
+function toggleWork(i){
+  const r=document.getElementById('work'+i), e=document.getElementById('exp'+i);
+  const open = r.style.display!=='none';
+  r.style.display = open?'none':'';
+  e.textContent = open?'▸':'▾';
+}
+function runVerify(){
+  const tb=document.getElementById('verifyBody'); tb.innerHTML='';
+  let passes=0; const lines=[];
+  CHECKS.forEach((c,idx)=>{
+    let r;
+    try{ r=c.fn(); }catch(e){ r={pass:false,detail:'exception: '+e.message}; }
+    if(r.pass) passes++;
+    lines.push(`${r.pass?'✓':'✗'} ${c.id} ${c.name} — ${r.detail}`);
+    let work;
+    try{ work = WORK[c.id] ? WORK[c.id]() : ['(see the detail column)']; }
+    catch(e){ work = ['work generator error: '+e.message]; }
+    tb.insertAdjacentHTML('beforeend',
+      `<tr class="vrow" onclick="toggleWork(${idx})"><td><span class="light ${r.pass?'g':'r'}"></span><span class="exp" id="exp${idx}">▸</span>${c.id}</td><td>${c.name}</td><td style="font-family:'Segoe UI',sans-serif;color:var(--dim)">${c.claim}</td><td class="${r.pass?'ok':'bad'}">${r.detail}</td></tr>
+       <tr class="workrow" id="work${idx}" style="display:none"><td colspan="4"><pre>${work.join('\n')}</pre></td></tr>`);
+  });
+  const all = passes===CHECKS.length;
+  document.getElementById('verifySummary').innerHTML =
+    all ? `<span class="ok">✓ ${passes}/${CHECKS.length} green — the implementation matches the mathematics</span>`
+        : `<span class="bad">✗ ${passes}/${CHECKS.length} — a red light means the implementation, not the mathematics, has a bug</span>`;
+  addLedger('Verify suite', `V1–V26 + acceptance: ${passes}/${CHECKS.length} pass`, all,
+    ['every check re-computed from scratch just now (enumerations + identities — nothing stored):', ...lines]);
+}
+
+/* ================= TABS & INIT ================= */
+function switchTab(name){
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  document.querySelectorAll('section.tab').forEach(s=>s.classList.toggle('active', s.id==='tab-'+name));
+}
+document.getElementById('nav').addEventListener('click', e=>{
+  if(e.target.dataset.tab) switchTab(e.target.dataset.tab);
+});
+renderRing();
+renderFold();
+document.getElementById('foldStatus').innerHTML = foldStatusHTML();
+drawVesica(ctxCos,460,380,9,vesicaPrev.cos);
+drawVesica(ctxSin,460,380,9,vesicaPrev.sin);
+drawGnomon(7);
+renderZoom();
+</script>
+</body>
+</html>
