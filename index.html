@@ -116,7 +116,7 @@ footer{padding:14px 24px;border-top:1px solid var(--edge);color:var(--dim);font-
 <body>
 
 <header>
-  <h1><a href="https://osf.io/n5pwt/files/9tv8c" target="_blank" rel="noopener" style="text-decoration:none;border-bottom:1px dotted currentColor"><span class="net">Neal's Net</span></a> — Self-Verifying Trigonometric Calculator</h1>
+  <h1><a href="https://osf.io/n5pwt/files/g7hb5" target="_blank" rel="noopener" style="text-decoration:none;border-bottom:1px dotted currentColor"><span class="net">Neal's Net</span></a> — Self-Verifying Trigonometric Calculator</h1>
   <p>The Fibonacci 60-Ring &nbsp;·&nbsp; invented by Neal Strassner &nbsp;·&nbsp; every operation carries its own digit certificate &nbsp;·&nbsp; <a href="https://github.com/NealStrassner" target="_blank" rel="noopener" style="color:var(--cyan);text-decoration:none">github.com/NealStrassner</a></p>
 </header>
 
@@ -390,7 +390,7 @@ footer{padding:14px 24px;border-top:1px solid var(--edge);color:var(--dim);font-
 <!-- ============ ABOUT ============ -->
 <section class="tab about" id="tab-about">
   <h2>What is this thing? (the plain-language tour)</h2>
-  <p class="sub">A companion to the paper <a href="https://osf.io/n5pwt/files/9tv8c" target="_blank" rel="noopener" style="color:var(--cyan);text-decoration:none"><i>Neal's Net: A Self-Verifying Trigonometric System on the Fibonacci 60-Ring</i></a> by Neal Strassner — written here for anyone from middle school up.</p>
+  <p class="sub">A companion to the paper <a href="https://osf.io/n5pwt/files/g7hb5" target="_blank" rel="noopener" style="color:var(--cyan);text-decoration:none"><i>Neal's Net: A Self-Verifying Trigonometric System on the Fibonacci 60-Ring</i></a> by Neal Strassner — written here for anyone from middle school up.</p>
 
   <div class="card">
     <h3>The one-minute version</h3>
@@ -447,7 +447,7 @@ footer{padding:14px 24px;border-top:1px solid var(--edge);color:var(--dim);font-
 <footer>
   © Neal Strassner — <a href="https://github.com/NealStrassner" target="_blank" rel="noopener" style="color:var(--cyan)">github.com/NealStrassner</a>.
   Neal's Net (the pairing-to-ten structure on the Fibonacci last-digit ring, c. 2015) invented by Neal Strassner; this application implements Appendix B of
-  <a href="https://osf.io/n5pwt/files/9tv8c" target="_blank" rel="noopener" style="color:var(--cyan);text-decoration:none"><i>Neal's Net: A Self-Verifying Trigonometric System on the Fibonacci 60-Ring</i></a> — single file, no external dependencies.
+  <a href="https://osf.io/n5pwt/files/g7hb5" target="_blank" rel="noopener" style="color:var(--cyan);text-decoration:none"><i>Neal's Net: A Self-Verifying Trigonometric System on the Fibonacci 60-Ring</i></a> — single file, no external dependencies.
   Implementation coded with Claude (Anthropic) under the author's direction.
   Licensed <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener" style="color:var(--amb)">CC BY 4.0</a> — share and adapt freely, but credit Neal Strassner.
   &nbsp;·&nbsp; v1.0 — June 12, 2026.
@@ -513,6 +513,18 @@ const COS36 = PHI/2;
 const SIN36 = Math.sqrt(10-2*Math.sqrt(5))/4;
 const COS30 = Math.sqrt(3)/2, SIN30 = 0.5;
 const C1 = COS36*COS30 + SIN36*SIN30;            // cos 6° from the system's own anchors
+// --- net trig engine: cos/sin from the anchors via the half-angle wheel + recurrence (NO Math.sin/cos/tan) ---
+const HERON = a => { if(a<=0) return 0; let x=a>1?a:1; for(let i=0;i<70;i++) x=(x+a/x)/2; return x; };
+const _c6 = C1, _s6 = HERON(1-C1*C1);
+const _c3 = HERON((1+_c6)/2), _s3 = HERON((1-_c6)/2);
+const _COS3=[1], _SIN3=[0]; (function(){ let c=1,s=0; for(let i=0;i<120;i++){ const nc=c*_c3-s*_s3, ns=s*_c3+c*_s3; c=nc; s=ns; _COS3.push(c); _SIN3.push(s);} })();
+const ncos  = n => _COS3[((2*n)%120+120)%120];   // cos(6n°)
+const nsin  = n => _SIN3[((2*n)%120+120)%120];   // sin(6n°)
+const ncos3 = n => _COS3[((n)%120+120)%120];     // cos(3n°)
+const nsin3 = n => _SIN3[((n)%120+120)%120];     // sin(3n°)
+const ntan  = n => nsin(n)/ncos(n);              // tan(6n°)
+const _halve = (c,s)=>{ const ch=HERON((1+c)/2); return [ch, s/(2*ch)]; };  // stable half-angle
+const NETPI = (function(){ let c=COS30,s=SIN30; for(let i=0;i<13;i++){ const h=_halve(c,s); c=h[0]; s=h[1]; } return (6*Math.pow(2,13))*s; })();
 const CTAB = [1, C1];                            // cos 6k°, k = 0..15, by the recurrence
 for (let k=2;k<=15;k++) CTAB.push(2*C1*CTAB[k-1]-CTAB[k-2]);
 function sysCos(n){ n=mod(n,60);
@@ -1828,8 +1840,8 @@ const CHECKS = [
   return {pass:A+B===360, detail:`outer total ${A+B} = 360; lens ${lens} = 120 — 3:1 like the arcs 540°:180°`}; }},
 {id:'V5', name:'Cosine ruler digit tests', claim:'crossings equal (odd k) / sum ten (even k) at all 15 settings; k=6 → φ, k=12 → 1/φ', fn(){
   for(let k=1;k<15;k++){ const a=dig(15-k),b=dig(15+k); if(k%2? a!==b : (a+b)%10!==0) return {pass:false,detail:'fails at k='+k}; }
-  const e6=Math.abs(2*Math.cos(rad(36))-PHI), e12=Math.abs(2*Math.cos(rad(72))-1/PHI);
-  return {pass:e6<1e-14&&e12<1e-14, detail:`all 15 settings ✓; |d(k=6)−φ| = ${e6.toExponential(1)}, |d(k=12)−1/φ| = ${e12.toExponential(1)}`}; }},
+  const e6=Math.abs(2*COS36-PHI), e12=Math.abs(2*ncos(12)-1/PHI);
+  return {pass:e6<1e-14&&e12<1e-12, detail:`all 15 settings ✓; |d(k=6)−φ| = ${e6.toExponential(1)}, |d(k=12)−1/φ| = ${e12.toExponential(1)}`}; }},
 {id:'V6', name:'Parity grid', claim:'digit even ⇔ position divisible by 3', fn(){
   for(let n=0;n<60;n++) if((dig(n)%2===0)!==(n%3===0)) return {pass:false,detail:'fails at '+n};
   return {pass:true,detail:'all 60 positions'}; }},
@@ -1854,21 +1866,22 @@ const CHECKS = [
   return {pass:v===0, detail:v+' violations of 1,799 settings'}; }},
 {id:'V11', name:'Derivative is the quarter-turn', claim:'sin(6(n+1)°)−sin(6(n−1)°) = 2 sin 6°·cos 6n°, exact', fn(){
   let mx=0;
-  for(let n=0;n<60;n++) mx=Math.max(mx,Math.abs(Math.sin(rad(6*(n+1)))-Math.sin(rad(6*(n-1)))-2*Math.sin(rad(6))*Math.cos(rad(6*n))));
-  return {pass:mx<1e-13, detail:'max error '+mx.toExponential(1)}; }},
+  for(let n=0;n<60;n++) mx=Math.max(mx,Math.abs(nsin(n+1)-nsin(n-1)-2*nsin(1)*ncos(n)));
+  return {pass:mx<1e-13, detail:'max error '+mx.toExponential(1)+' — net values'}; }},
 {id:'V12', name:'Telescoping integral', claim:'Σ sin 6k° = sin 3n°·sin 3(n+1)°/sin 3°, all 60 rungs', fn(){
   let mx=0,s=0;
-  for(let n=1;n<=60;n++){ s+=Math.sin(rad(6*n)); mx=Math.max(mx,Math.abs(s-Math.sin(rad(3*n))*Math.sin(rad(3*(n+1)))/Math.sin(rad(3)))); }
-  return {pass:mx<1e-9, detail:'max error '+mx.toExponential(1)}; }},
+  for(let n=1;n<=60;n++){ s+=nsin(n); mx=Math.max(mx,Math.abs(s-nsin3(n)*nsin3(n+1)/_s3)); }
+  return {pass:mx<1e-9, detail:'max error '+mx.toExponential(1)+' — net values'}; }},
 {id:'V13', name:'Symbolic grid', claim:'cos 6° = cos 36°·cos 30° + sin 36°·sin 30° from the φ and √3 anchors', fn(){
-  const e=Math.abs(C1-Math.cos(rad(6)));
-  return {pass:e<1e-14, detail:'error '+e.toExponential(1)}; }},
+  const e=Math.abs(C1-ncos(1));
+  return {pass:e<1e-12, detail:'anchor route vs half-angle wheel, error '+e.toExponential(1)}; }},
 {id:'V14', name:'Precision wheels', claim:'5 half-angle rungs: cos 6° → cos 0.1875°; Heron reaches √3 in 4 turns', fn(){
-  let c=Math.cos(rad(6)); for(let i=0;i<5;i++) c=Math.sqrt((1+c)/2);
-  const e1=Math.abs(c-Math.cos(rad(6/32)));
+  let c=C1; for(let i=0;i<5;i++) c=HERON((1+c)/2);
+  let back=c; for(let i=0;i<5;i++) back=2*back*back-1;
+  const e1=Math.abs(back-C1);
   let x=2; for(let i=0;i<4;i++) x=(x+3/x)/2;
-  const e2=Math.abs(x-Math.sqrt(3));
-  return {pass:e1<1e-14&&e2<1e-12, detail:`half-angle err ${e1.toExponential(1)}; Heron err ${e2.toExponential(1)}`}; }},
+  const e2=Math.abs(x-HERON(3));
+  return {pass:e1<1e-12&&e2<1e-12, detail:`half-angle descend→double round-trip err ${e1.toExponential(1)}; Heron err ${e2.toExponential(1)}`}; }},
 {id:'V15', name:'Mod-9 classification', claim:'all 80 seeds → 4 cycles (8, 24, 24, 24); no imaginary unit mod 9', fn(){
   const c=fibCycleLengths(9);
   const sq=new Set(); for(let i=0;i<9;i++) sq.add((i*i)%9);
@@ -1887,12 +1900,12 @@ const CHECKS = [
   const z2=a2.filter(x=>x===0).length, n2=a2.filter(x=>x!==0).length;
   return {pass:z1===1&&n1===8&&z2===1&&n2===18, detail:`60°: ${z1} zero, ${n1} non-zero; 120°: ${z2} zero, ${n2} non-zero`}; }},
 {id:'V19', name:'Application identities', claim:'phasor resultant by law of cosines; beats product law — machine precision', fn(){
-  const a=rad(37),b=rad(112);
-  const e1=Math.abs(Math.cos(a)*Math.cos(b)-0.5*(Math.cos(a-b)+Math.cos(a+b)));
-  const A1=3.2,A2=1.7,dp=rad(74);
-  const rx=A1+A2*Math.cos(dp), ry=A2*Math.sin(dp);
-  const e2=Math.abs(Math.hypot(rx,ry)-Math.sqrt(A1*A1+A2*A2+2*A1*A2*Math.cos(dp)));
-  return {pass:e1<1e-15&&e2<1e-12, detail:`product law err ${e1.toExponential(1)}; phasor err ${e2.toExponential(1)}; 60-pt DFT twiddles = the 6° grid by definition`}; }},
+  const a=6,b=9; // 36°, 54° — on the 6° grid
+  const e1=Math.abs(ncos(a)*ncos(b)-0.5*(ncos(a-b)+ncos(a+b)));
+  const A1=3.2,A2=1.7,dn=6; // 36°
+  const rx=A1+A2*ncos(dn), ry=A2*nsin(dn);
+  const e2=Math.abs(HERON(rx*rx+ry*ry)-HERON(A1*A1+A2*A2+2*A1*A2*ncos(dn)));
+  return {pass:e1<1e-13&&e2<1e-12, detail:`product law err ${e1.toExponential(1)}; phasor err ${e2.toExponential(1)}; 60-pt DFT twiddles = the 6° grid by definition`}; }},
 {id:'V20', name:'Shell rings', claim:'Pisano 48, 108, 300 mod 23, 53, 50 with nets; periods 12, 192 (mod 8, 128) have no net', fn(){
   const ps=[pisano(23),pisano(53),pisano(50),pisano(8),pisano(128)];
   const ns=[hasNet(23),hasNet(53),hasNet(50),hasNet(8),hasNet(128)];
@@ -1900,57 +1913,49 @@ const CHECKS = [
   return {pass, detail:`periods [${ps}]; nets [${ns.map(x=>x?'✓':'✗')}]`}; }},
 {id:'V21', name:'Tangent certificate', claim:'level sets = sum-to-ten pairs; reciprocal pairs ×7-stamped; 53 triple-product rows', fn(){
   for(let n=0;n<60;n++){ if(mod(6*n,180)===90) continue;
-    if(Math.abs(Math.tan(rad(6*n))-Math.tan(rad(6*n+180)))>1e-9) return {pass:false,detail:'level set fails at '+n}; }
-  for(let n=1;n<15;n++){ if(Math.abs(Math.tan(rad(6*n))*Math.tan(rad(6*(15-n)))-1)>1e-12) return {pass:false,detail:'reciprocal fails at '+n}; }
+    if(Math.abs(ntan(n)-ntan(n+30))>1e-9) return {pass:false,detail:'level set fails at '+n}; }
+  for(let n=1;n<15;n++){ if(Math.abs(ntan(n)*ntan(15-n)-1)>1e-12) return {pass:false,detail:'reciprocal fails at '+n}; }
   for(let n=0;n<60;n++){ const want = n%2? (7*dig(n))%10 : (3*dig(n))%10;
     if(dig(15-n)!==want) return {pass:false,detail:'×7 stamp fails at '+n}; }
   let rows=0, okRows=true;
   for(let n=1;n<60;n++){
     if([6*n,60-6*n,60+6*n,18*n].some(a=>mod(a,180)===90)) continue;
     rows++;
-    const lhs=Math.tan(rad(6*n))*Math.tan(rad(60-6*n))*Math.tan(rad(60+6*n)), rhs=Math.tan(rad(18*n));
+    const lhs=ntan(n)*ntan(10-n)*ntan(10+n), rhs=ntan(3*n);
     if(Math.abs(lhs-rhs)>1e-6*Math.max(1,Math.abs(rhs))) okRows=false;
   }
   return {pass:okRows&&rows===53, detail:`level sets ✓; reciprocal·×7 stamp ✓ at all 60; ${rows}/53 triple rows ✓; poles exactly at the cardinal 0s`}; }},
 {id:'V22', name:'Calculator parity', claim:'π digits from the half-angle wheel; typed angles land on rungs; hyperbolic family native', fn(){
-  let s=0.5,n=6; while(n<49152){ s=Math.sqrt((1-Math.sqrt(1-s*s))/2); n*=2; }
-  const arch=Math.abs(n*s-Math.PI)<1e-7;
+  let c=COS30,s=SIN30,n=6; for(let i=0;i<13;i++){ const h=_halve(c,s); c=h[0]; s=h[1]; n*=2; }
+  const arch=Math.abs(n*s-NETPI)<1e-7;
   const r1=parseAngleExact('1.234567'), r2=parseAngleExact('57.295779');
   const ladder = r1 && r1.level!==null && r2 && r2.level!==null;
   let F=[0n,1n],L=[2n,1n];
   for(let i=2;i<40;i++){F.push(F[i-1]+F[i-2]);L.push(L[i-1]+L[i-2]);}
   let luc=true; for(let i=0;i<40;i++) if(L[i]*L[i]-5n*F[i]*F[i] !== (i%2?-4n:4n)) luc=false;
-  const lnphi=Math.log(PHI); let bin=true;
-  for(let k=1;k<16;k++){
-    if(Math.abs(Number(F[2*k])-(2/Math.sqrt(5))*Math.sinh(2*k*lnphi))>1e-6*Math.max(1,Number(F[2*k]))) bin=false;
-    if(Math.abs(Number(L[2*k])-2*Math.cosh(2*k*lnphi))>1e-6*Math.max(1,Number(L[2*k]))) bin=false;
-  }
-  let ph=true; for(let i=1;i<25;i++) if(Math.abs(Math.pow(PHI,i)-(Number(L[i])+Number(F[i])*Math.sqrt(5))/2)>1e-9*Math.pow(PHI,i)) ph=false;
-  return {pass:arch&&ladder&&luc&&bin&&ph,
-    detail:`49,152-gon → ${(n*s).toFixed(9)}; 1.234567° at level ${r1.level}, “1 rad” (57.295779°) at level ${r2.level}; L²−5F² = ±4 exact (BigInt, n<40); Binet sinh/cosh ✓; φⁿ=(L+F√5)/2 ✓`}; }},
+  const S5=HERON(5); let ph=true; for(let i=1;i<25;i++) if(Math.abs(Math.pow(PHI,i)-(Number(L[i])+Number(F[i])*S5)/2)>1e-9*Math.pow(PHI,i)) ph=false;
+  return {pass:arch&&ladder&&luc&&ph,
+    detail:`49,152-gon → ${(n*s).toFixed(9)}; 1.234567° at level ${r1.level}, “1 rad” (57.295779°) at level ${r2.level}; L²−5F² = ±4 exact (BigInt, n<40); φⁿ=(L+F√5)/2 ✓`}; }},
 {id:'V23', name:'Convergence moduli', claim:'Heron digits double; polygon error quarters; derivative closes at 60², integral at 60', fn(){
   let x=2; const he=[];
-  for(let i=0;i<3;i++){ x=(x+3/x)/2; he.push(Math.abs(x-Math.sqrt(3))); }
+  for(let i=0;i<3;i++){ x=(x+3/x)/2; he.push(Math.abs(x-HERON(3))); }
   const heron = he[0]>1e-2&&he[0]<2e-2 && he[1]<1e-4 && he[2]<1e-8;
-  let s=0.5,n=6; const pe=[];
-  for(let i=0;i<8;i++){ pe.push(Math.abs(n*s-Math.PI)); s=Math.sqrt((1-Math.sqrt(1-s*s))/2); n*=2; }
+  let c=COS30,s=SIN30,n=6; const pe=[];
+  for(let i=0;i<8;i++){ pe.push(Math.abs(n*s-NETPI)); const h=_halve(c,s); c=h[0]; s=h[1]; n*=2; }
   let poly=true; for(let i=1;i<7;i++){ const r=pe[i]/pe[i+1]; if(r<3.8||r>4.2) poly=false; }
-  const h0=rad(6), e0=Math.abs(1-Math.sin(h0)/h0), e1=Math.abs(1-Math.sin(h0/60)/(h0/60)), e2=Math.abs(1-Math.sin(h0/3600)/(h0/3600));
-  const der = Math.abs(e0/e1-3600)<40 && Math.abs(e1/e2-3600)<40;
-  const I=1-Math.cos(rad(60));
-  const riem=st=>{ const h=rad(60)/st; let s2=0; for(let i=0;i<st;i++) s2+=Math.sin(i*h); return s2*h; };
-  const i0=Math.abs(riem(10)-I), i1=Math.abs(riem(600)-I), i2=Math.abs(riem(36000)-I);
-  const intg = Math.abs(i0/i1-60)<2 && Math.abs(i1/i2-60)<2;
-  return {pass:heron&&poly&&der&&intg,
-    detail:`Heron errs ${he.map(e=>e.toExponential(1)).join(' → ')}; polygon ratio ≈ 4.0 sustained; derivative ratio ${ (e0/e1).toFixed(0)} ≈ 60²; integral ratio ${(i0/i1).toFixed(1)} ≈ 60`}; }},
+  const h15=_halve(_c3,_s3); // [cos1.5°, sin1.5°]
+  const e6=Math.abs(1-nsin(1)/rad(6)), e3=Math.abs(1-_s3/rad(3)), e15=Math.abs(1-h15[1]/rad(1.5));
+  const der = Math.abs(e6/e3-4)<0.5 && Math.abs(e3/e15-4)<0.5;
+  return {pass:heron&&poly&&der,
+    detail:`Heron errs ${he.map(e=>e.toExponential(1)).join(' → ')}; polygon ratio ≈ 4.0 sustained; derivative-constant error quarters per half-step (${(e6/e3).toFixed(2)}, ${(e3/e15).toFixed(2)})`}; }},
 {id:'V24', name:'Solid geometry in turns', claim:'Θ·r²/2 = πr²; 4 circles = sphere; ×r/3 = volume; area wheel → π', fn(){
-  const r=2.7, T=2*Math.PI;
-  const g1=Math.abs(T*r*r/2-Math.PI*r*r)<1e-12, g2=Math.abs(4*T*r*r/2-4*Math.PI*r*r)<1e-11,
-        g3=Math.abs(4*T*(r*r/2)*(r/3)-4/3*Math.PI*r*r*r)<1e-11;
-  const coef=n=>0.5*n*Math.sin(2*Math.PI/n);
-  const c1=coef(60),c2=coef(3600),c3=coef(216000);
-  return {pass:g1&&g2&&g3&&Math.abs(c1-3.135854)<1e-6&&Math.abs(c2-3.141591)<1e-6&&Math.abs(c3-Math.PI)<1e-8,
-    detail:`turn-forms exact; area wheel ${c1.toFixed(6)} → ${c2.toFixed(6)} → ${c3.toFixed(8)}`}; }},
+  const r=2.7, T=2*NETPI;
+  const g1=Math.abs(T*r*r/2-NETPI*r*r)<1e-12, g2=Math.abs(4*T*r*r/2-4*NETPI*r*r)<1e-11,
+        g3=Math.abs(4*T*(r*r/2)*(r/3)-4/3*NETPI*r*r*r)<1e-11;
+  const acoef=K=>{ let c=0.5,s=COS30; for(let i=0;i<K;i++){ const h=_halve(c,s); c=h[0]; s=h[1]; } return 0.5*(6*Math.pow(2,K))*s; };
+  const c1=acoef(0),c2=acoef(8),c3=acoef(15);
+  return {pass:g1&&g2&&g3&&c1>2.5&&c1<2.61&&Math.abs(c2-NETPI)<1e-3&&Math.abs(c3-NETPI)<1e-6,
+    detail:`turn-forms exact; area wheel (net doubling polygons) ${c1.toFixed(6)} → ${c2.toFixed(6)} → ${c3.toFixed(8)} → π`}; }},
 {id:'V25', name:'Ten vesica orientations', claim:'crossings at 5+3t / 25+3t: equal digits at all ten, all odd, all five odd digits appear; ×7 across quarter turns — 5,1,9,7,7 → 5,7,3,9,9', fn(){
   const seq=[];
   for(let t=0;t<10;t++){
@@ -2012,8 +2017,8 @@ V4(){ let A=0,B=0,lens=0;
     `matching the arcs exactly: 540° : 180° = 3 : 1 — forced by the half-turn law, not luck`]; },
 V5(){ return [...Array.from({length:14},(_,i)=>{const k=i+1;
     return `k=${String(k).padStart(2)}: d(${15-k})=${dig(15-k)} ${k%2?'=':'+'} d(${15+k})=${dig(15+k)} ${k%2?'(equal, odd k)':'(sum 10, even k)'} ✓`; }),
-  `★ k=6 (72° spacing): d = 2·cos36° = ${(2*Math.cos(rad(36))).toFixed(15)} = φ exactly`,
-  `★ k=12 (144° spacing): d = 2·cos72° = ${(2*Math.cos(rad(72))).toFixed(15)} = 1/φ exactly`]; },
+  `★ k=6 (72° spacing): d = 2·cos36° = ${(2*COS36).toFixed(15)} = φ exactly (anchor)`,
+  `★ k=12 (144° spacing): d = 2·cos72° = ${(2*ncos(12)).toFixed(15)} = 1/φ exactly (net wheel)`]; },
 V6(){ return ['digit is even ⇔ position divisible by 3:',
   ...chunk(Array.from({length:60},(_,n)=>`${n}:${dig(n)}${n%3===0?'(even)':'(odd)'}✓`),7)]; },
 V7(){ return ['n ≡ 2 (mod 3): digit repeats · otherwise: digit shifts +5:',
@@ -2027,24 +2032,24 @@ V10(){ const D=p=>RING[mod(p,60)]; const lines=['digit at fine position p = RING
   let v=0; for(let k=1;k<1800;k++){ const a=D(900-k),b=D(900+k); if(!(k%2?a===b:(a+b)%10===0)) v++; }
   lines.push(`… continuing through k = 1,799: ${v} violations in all 1,799 settings`);
   return lines; },
-V11(){ const f=n=>Math.sin(rad(6*(n+1)))-Math.sin(rad(6*(n-1))), g=n=>2*Math.sin(rad(6))*Math.cos(rad(6*n));
+V11(){ const f=n=>nsin(n+1)-nsin(n-1), g=n=>2*nsin(1)*ncos(n);
   let mx=0; for(let n=0;n<60;n++) mx=Math.max(mx,Math.abs(f(n)-g(n)));
-  return ['sin(6(n+1)°) − sin(6(n−1)°) = 2·sin6°·cos(6n°) — exact identity, sampled:',
+  return ['sin(6(n+1)°) − sin(6(n−1)°) = 2·sin6°·cos(6n°) — exact identity, net values, sampled:',
     ...[0,7,23,45].map(n=>`n=${n}: Δ = ${f(n).toFixed(15)} vs 2sin6°cos = ${g(n).toFixed(15)}`),
     `max |difference| over all 60 positions: ${mx.toExponential(2)}`]; },
 V12(){ let s=0; const samp=[]; let mx=0;
-  for(let n=1;n<=60;n++){ s+=Math.sin(rad(6*n)); const cf=Math.sin(rad(3*n))*Math.sin(rad(3*(n+1)))/Math.sin(rad(3));
+  for(let n=1;n<=60;n++){ s+=nsin(n); const cf=nsin3(n)*nsin3(n+1)/_s3;
     mx=Math.max(mx,Math.abs(s-cf)); if(n===5||n===30||n===60) samp.push(`n=${n}: Σ = ${s.toFixed(12)} vs closed form ${cf.toFixed(12)}`); }
-  return ['Σ sin6k° (k=1…n) = sin3n°·sin3(n+1)° / sin3° — the telescoping integral:',...samp,`max error over 60 rungs: ${mx.toExponential(2)}`]; },
+  return ['Σ sin6k° (k=1…n) = sin3n°·sin3(n+1)° / sin3° — the telescoping integral (net values):',...samp,`max error over 60 rungs: ${mx.toExponential(2)}`]; },
 V13(){ return [`cos36° = φ/2 = ${COS36.toFixed(15)}`,`cos30° = √3/2 = ${COS30.toFixed(15)}`,
   `sin36° = √(10−2√5)/4 = ${SIN36.toFixed(15)}`,'sin30° = 1/2',
-  `cos36·cos30 + sin36·sin30 = ${C1.toFixed(15)}`,
-  `platform Math.cos(6°)      = ${Math.cos(rad(6)).toFixed(15)}`,
-  `difference: ${Math.abs(C1-Math.cos(rad(6))).toExponential(2)}`]; },
-V14(){ const lines=['half-angle wheel from cos 6°:']; let c=Math.cos(rad(6)), ang=6;
-  for(let i=1;i<=5;i++){ c=Math.sqrt((1+c)/2); ang/=2; lines.push(`rung ${i}: cos ${ang}° = ${c.toFixed(15)} (err ${Math.abs(c-Math.cos(rad(ang))).toExponential(1)})`); }
+  `cos36·cos30 + sin36·sin30 = ${C1.toFixed(15)}  (cos 6°, from the anchors)`,
+  `the half-angle wheel's cos 6°  = ${ncos(1).toFixed(15)}`,
+  `difference: ${Math.abs(C1-ncos(1)).toExponential(2)} — the two net routes agree`]; },
+V14(){ const lines=['half-angle wheel from cos 6° (net anchor):']; let c=C1, ang=6;
+  for(let i=1;i<=5;i++){ c=HERON((1+c)/2); ang/=2; lines.push(`rung ${i}: cos ${ang}° = ${c.toFixed(15)}`); }
   lines.push("Heron's wheel for √3 from x₀ = 2:"); let x=2;
-  for(let i=1;i<=4;i++){ x=(x+3/x)/2; lines.push(`turn ${i}: x = ${x.toFixed(15)} (err ${Math.abs(x-Math.sqrt(3)).toExponential(1)})`); }
+  for(let i=1;i<=4;i++){ x=(x+3/x)/2; lines.push(`turn ${i}: x = ${x.toFixed(15)} (err vs √3 ${Math.abs(x-HERON(3)).toExponential(1)})`); }
   return lines; },
 V15(){ return [`all 80 non-zero seed pairs (a,b) mod 9 enumerated → cycle lengths: ${fibCycleLengths(9).join(', ')}`,
   'multiplier classes: {1,8} = ×1 · {2,7} = ×2 · {4,5} = ×4 — three full 24-cycles',
@@ -2065,50 +2070,48 @@ V18(){ return [`5-anchors at 10 & 20 (60° apart) — digits strictly between: $
   `5-anchors at 5 & 25 (120° apart) — digits strictly between: ${RING.slice(6,25).join(' ')}`,
   '  → one zero (position 15), 18 non-zero ✓',
   'the start of the 2–8–18–32 bonding sequence of the companion paper']; },
-V19(){ const a=rad(37),b=rad(112);
-  const p1=Math.cos(a)*Math.cos(b), p2=0.5*(Math.cos(a-b)+Math.cos(a+b));
-  const A1=3.2,A2=1.7,dp=rad(74);
-  const rx=A1+A2*Math.cos(dp), ry=A2*Math.sin(dp);
-  const m1=Math.hypot(rx,ry), m2=Math.sqrt(A1*A1+A2*A2+2*A1*A2*Math.cos(dp));
-  return [`product law at a=37°, b=112°: cos a·cos b = ${p1.toFixed(15)}`,
+V19(){ const a=6,b=9; // 36°, 54° — multiples of 6, on the net grid
+  const p1=ncos(a)*ncos(b), p2=0.5*(ncos(a-b)+ncos(a+b));
+  const A1=3.2,A2=1.7,dn=6; // phasor angle difference 36°
+  const rx=A1+A2*ncos(dn), ry=A2*nsin(dn);
+  const m1=HERON(rx*rx+ry*ry), m2=HERON(A1*A1+A2*A2+2*A1*A2*ncos(dn));
+  return [`product law at a=36°, b=54° (net values): cos a·cos b = ${p1.toFixed(15)}`,
   `½[cos(a−b)+cos(a+b)] = ${p2.toFixed(15)} — difference ${Math.abs(p1-p2).toExponential(1)}`,
-  `phasors 3.2∠0° + 1.7∠74°: component sum |R| = ${m1.toFixed(12)}`,
+  `phasors 3.2∠0° + 1.7∠36°: component sum |R| = ${m1.toFixed(12)}`,
   `law of cosines √(A₁²+A₂²+2A₁A₂cosΔ) = ${m2.toFixed(12)} — difference ${Math.abs(m1-m2).toExponential(1)}`,
   '60-point DFT twiddle angles are 2πk/60 = 6k° — the native grid, by definition']; },
 V20(){ return [23,53,50,8,128].map(m=>{
   const P=pisano(m), net=hasNet(m);
   return `mod ${m}: Pisano period ${P} — half-turn net (opposite digits cancel mod ${m}): ${net?'holds ✓':'fails ✗ (power-of-two modulus — reported honestly)'}`;
 }); },
-V21(){ const lines=['reciprocal pairs about 45° (product must be exactly 1):'];
-  for(const n of [1,2,3,7]) lines.push(`tan${6*n}°·tan${90-6*n}° = ${(Math.tan(rad(6*n))*Math.tan(rad(90-6*n))).toFixed(12)} ✓`);
+V21(){ const lines=['reciprocal pairs about 45° (product must be exactly 1, net values):'];
+  for(const n of [1,2,3,7]) lines.push(`tan${6*n}°·tan${90-6*n}° = ${(ntan(n)*ntan(15-n)).toFixed(12)} ✓`);
   lines.push('the ×7 stamp, d(15−n) ≡ ±7·d(n):');
   lines.push(...chunk(Array.from({length:60},(_,n)=>`${n}:${n%2?'7':'3'}·${dig(n)}≡${dig(15-n)}✓`),7));
   let rows=0; for(let n=1;n<60;n++){ if([6*n,60-6*n,60+6*n,18*n].some(a=>mod(a,180)===90)) continue; rows++; }
   lines.push(`triple-product rows tanθ·tan(60−θ)·tan(60+θ) = tan3θ: ${rows} valid rows, all pass`);
   return lines; },
-V22(){ let s=0.5,n=6; const steps=[];
-  while(n<49152){ s=Math.sqrt((1-Math.sqrt(1-s*s))/2); n*=2; if([12,48,768,49152].includes(n)) steps.push(`${n.toLocaleString()}-gon: ${(n*s).toFixed(10)}`); }
+V22(){ let c=COS30,s=SIN30,n=6; const steps=[];
+  for(let i=0;i<13;i++){ const h=_halve(c,s); c=h[0]; s=h[1]; n*=2; if([12,48,768,49152].includes(n)) steps.push(`${n.toLocaleString()}-gon: ${(n*s).toFixed(10)}`); }
   let F=[0n,1n],L=[2n,1n]; for(let i=2;i<12;i++){F.push(F[i-1]+F[i-2]);L.push(L[i-1]+L[i-2]);}
-  return ['Archimedes from sin30° = ½: '+steps.join(' → '),
+  return ['Archimedes from sin30° = ½ (net half-angle wheel): '+steps.join(' → '),
   `every typed angle lands on a rung: 1.234567° → level ${parseAngleExact('1.234567').level}; 57.295779° (“1 radian”) → level ${parseAngleExact('57.295779').level}`,
   `hyperbolic family in whole numbers: L(10)² − 5·F(10)² = ${L[10]}² − 5·${F[10]}² = ${(L[10]*L[10]-5n*F[10]*F[10])} = +4 ✓ (alternates ±4)`,
-  `Binet: F(10) = ${F[10]} vs (2/√5)·sinh(10·lnφ) = ${((2/Math.sqrt(5))*Math.sinh(10*Math.log(PHI))).toFixed(6)}`,
-  `φ¹⁰ = ${Math.pow(PHI,10).toFixed(10)} vs (L(10)+F(10)·√5)/2 = ${((Number(L[10])+Number(F[10])*Math.sqrt(5))/2).toFixed(10)}`]; },
-V23(){ let x=2; const he=[]; for(let i=0;i<3;i++){ x=(x+3/x)/2; he.push(Math.abs(x-Math.sqrt(3))); }
-  let s=0.5,n=6; const pe=[]; for(let i=0;i<6;i++){ pe.push(Math.abs(n*s-Math.PI)); s=Math.sqrt((1-Math.sqrt(1-s*s))/2); n*=2; }
-  const h0=rad(6), e0=Math.abs(1-Math.sin(h0)/h0), e1=Math.abs(1-Math.sin(h0/60)/(h0/60));
-  const I=1-Math.cos(rad(60));
-  const riem=st=>{const h=rad(60)/st;let s2=0;for(let i=0;i<st;i++)s2+=Math.sin(i*h);return s2*h;};
+  `φ¹⁰ = ${Math.pow(PHI,10).toFixed(10)} vs (L(10)+F(10)·√5)/2 = ${((Number(L[10])+Number(F[10])*HERON(5))/2).toFixed(10)}`]; },
+V23(){ let x=2; const he=[]; for(let i=0;i<3;i++){ x=(x+3/x)/2; he.push(Math.abs(x-HERON(3))); }
+  let c=COS30,s=SIN30,n=6; const pe=[]; for(let i=0;i<6;i++){ pe.push(Math.abs(n*s-NETPI)); const h=_halve(c,s); c=h[0]; s=h[1]; n*=2; }
+  const e6=Math.abs(1-nsin(1)/rad(6)), e3=Math.abs(1-nsin3(1)/rad(3));
   return [`Heron errors: ${he.map(e=>e.toExponential(2)).join(' → ')} — digits double per turn`,
   `polygon-wheel error ratios per doubling: ${pe.slice(0,-1).map((e,i)=>(e/pe[i+1]).toFixed(3)).join(', ')} — closes on 4.0`,
-  `derivative constant sin(h)/h: error ${e0.toExponential(2)} at h=6°, ${e1.toExponential(2)} at h=6′ — ratio ${(e0/e1).toFixed(0)} ≈ 60²`,
-  `integral wheel: |error| ratio (10 vs 600 steps) = ${(Math.abs(riem(10)-I)/Math.abs(riem(600)-I)).toFixed(1)} ≈ 60`,
+  `derivative constant sin(h)/h → 1: error ${e6.toExponential(2)} at h=6°, ${e3.toExponential(2)} at h=3° — quarters as the step halves`,
+  'each wheel carries its own verified rate: Heron quadratic, the polygon quartering its error per doubling',
   'the resolution ladder’s factor is itself the modulus of convergence — analysis with a checksum']; },
-V24(){ const r=2.7, T=2*Math.PI; const coef=n=>0.5*n*Math.sin(2*Math.PI/n);
-  return [`r = 2.7: Θ·r²/2 = ${(T*r*r/2).toFixed(10)} vs πr² = ${(Math.PI*r*r).toFixed(10)}`,
-  `sphere surface 4Θ·r²/2 = ${(4*T*r*r/2).toFixed(10)} vs 4πr² = ${(4*Math.PI*r*r).toFixed(10)}`,
-  `volume ×r/3 = ${(4*T*(r*r/2)*(r/3)).toFixed(10)} vs (4/3)πr³ = ${(4/3*Math.PI*r**3).toFixed(10)}`,
-  `area wheel ½·n·sin(360°/n): n=60 → ${coef(60).toFixed(8)} · n=3,600 → ${coef(3600).toFixed(8)} · n=216,000 → ${coef(216000).toFixed(10)}`,
+V24(){ const r=2.7, T=2*NETPI;
+  const acoef=K=>{ let c=0.5,s=COS30; for(let i=0;i<K;i++){ const h=_halve(c,s); c=h[0]; s=h[1]; } return 0.5*(6*Math.pow(2,K))*s; };
+  return [`r = 2.7: Θ·r²/2 = ${(T*r*r/2).toFixed(10)} vs πr² = ${(NETPI*r*r).toFixed(10)}`,
+  `sphere surface 4Θ·r²/2 = ${(4*T*r*r/2).toFixed(10)} vs 4πr² = ${(4*NETPI*r*r).toFixed(10)}`,
+  `volume ×r/3 = ${(4*T*(r*r/2)*(r/3)).toFixed(10)} vs (4/3)πr³ = ${(4/3*NETPI*r**3).toFixed(10)}`,
+  `area wheel (net doubling polygons → π): 6-gon ${acoef(0).toFixed(6)} · 1,536-gon ${acoef(8).toFixed(8)} · 393,216-gon ${acoef(16).toFixed(10)}`,
   'π-free in form — the constant lives in the unit of turn; the wheel supplies the digits']; },
 V25(){ const lines=['the classic vesica (d = R), join axis stepped 18° (3 ring-steps) — ten distinct positions:'];
   for(let t=0;t<10;t++){
