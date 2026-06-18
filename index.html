@@ -1193,13 +1193,18 @@ function slideCos(v){
       <span class="tiny">${onGrid?'on the 6° grid — the crossing digits certify the setting':'sliding between marks — the certificate follows you down the ladder'}</span>
     </div>`;
 }
+let _cosLedgerT;
 function slideCosDone(v){
-  const th = +v;
-  addLedger('COS ruler slid by hand', `θ = ${th.toFixed(1)}° → d = ${(2*Math.cos(rad(th))).toFixed(6)} R → cos θ = ${Math.cos(rad(th)).toFixed(6)}`, true, [
-    'the instrument read directly: centers stand at d = 2·cos θ ring-radii',
-    `θ = ${th.toFixed(1)}° → d = ${(2*Math.cos(rad(th))).toFixed(8)} R`,
-    `halve: cos ${th.toFixed(1)}° = ${Math.cos(rad(th)).toFixed(8)}`,
-  ]);
+  // debounce: mobile fires 'change' repeatedly mid-drag — log ONE entry after the drag settles, so the ledger doesn't flood/thrash
+  clearTimeout(_cosLedgerT);
+  _cosLedgerT = setTimeout(()=>{
+    const th = +v;
+    addLedger('COS ruler slid by hand', `θ = ${th.toFixed(1)}° → d = ${(2*Math.cos(rad(th))).toFixed(6)} R → cos θ = ${Math.cos(rad(th)).toFixed(6)}`, true, [
+      'the instrument read directly: centers stand at d = 2·cos θ ring-radii',
+      `θ = ${th.toFixed(1)}° → d = ${(2*Math.cos(rad(th))).toFixed(8)} R`,
+      `halve: cos ${th.toFixed(1)}° = ${Math.cos(rad(th)).toFixed(8)}`,
+    ]);
+  }, 350);
 }
 function slideSin(v){
   const th = +v;
@@ -1220,13 +1225,18 @@ function slideSin(v){
       <span class="tiny">${onGrid?'on the 6° grid — the crossing digits certify the setting':'sliding between marks — the certificate follows you down the ladder'}</span>
     </div>`;
 }
+let _sinLedgerT;
 function slideSinDone(v){
-  const th = +v;
-  addLedger('SIN ruler slid by hand', `θ = ${th.toFixed(1)}° → d = ${(2*Math.sin(rad(th))).toFixed(6)} R → sin θ = ${Math.sin(rad(th)).toFixed(6)}`, true, [
-    'sin θ = cos(90° − θ): the ruler set to the complement reads sine directly',
-    `θ = ${th.toFixed(1)}° → d = 2·sin θ = ${(2*Math.sin(rad(th))).toFixed(8)} R`,
-    `halve: sin ${th.toFixed(1)}° = ${Math.sin(rad(th)).toFixed(8)}`,
-  ]);
+  // debounce (see slideCosDone): one ledger entry after the drag settles, not on every mid-drag 'change'
+  clearTimeout(_sinLedgerT);
+  _sinLedgerT = setTimeout(()=>{
+    const th = +v;
+    addLedger('SIN ruler slid by hand', `θ = ${th.toFixed(1)}° → d = ${(2*Math.sin(rad(th))).toFixed(6)} R → sin θ = ${Math.sin(rad(th)).toFixed(6)}`, true, [
+      'sin θ = cos(90° − θ): the ruler set to the complement reads sine directly',
+      `θ = ${th.toFixed(1)}° → d = 2·sin θ = ${(2*Math.sin(rad(th))).toFixed(8)} R`,
+      `halve: sin ${th.toFixed(1)}° = ${Math.sin(rad(th)).toFixed(8)}`,
+    ]);
+  }, 350);
 }
 
 /* ================= MODULE 5 : TAN (gnomon) ================= */
