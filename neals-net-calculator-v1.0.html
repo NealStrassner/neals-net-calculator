@@ -1185,7 +1185,7 @@ function slideCos(v){
     `θ = <b class="cy">${th.toFixed(1).padStart(4,' ')}°</b> &nbsp;·&nbsp; d = <b class="amb">${dRR.toFixed(5)} R</b> &nbsp;·&nbsp; cos θ = <b class="cy">${(dRR/2).toFixed(5)}</b><br><span class="ok" style="visibility:${onGrid?'visible':'hidden'}">on the 6° grid ✓ — crossing digits certified on the rings</span>`;
   document.getElementById('cosOut').innerHTML = `
     <h3>Ruler slid by hand — crossings ${parseFloat((2*kEff).toFixed(2))} steps apart (θ = ${th.toFixed(1)}°)</h3>
-    <div style="min-height:92px">${sliderCert(kEff)}</div>
+    <div style="height:112px;overflow:auto">${sliderCert(kEff)}</div>
     <div class="resbox mono">
       <span class="tiny">measured</span> &nbsp; center distance d = <b class="amb">${dRR.toFixed(6)}</b> ring-radii<br>
       cos ${th.toFixed(1)}° = d / 2 = <b>${(dRR/2).toFixed(6)}</b><br>
@@ -1212,7 +1212,7 @@ function slideSin(v){
   document.getElementById('sinOut').innerHTML = `
     <h3>Ruler slid by hand — sin via the complement (θ = ${th.toFixed(1)}°)</h3>
     <div class="mono tiny" style="margin-bottom:6px">sin ${th.toFixed(1)}° = cos ${(90-th).toFixed(1)}° — crossings ${parseFloat((2*kEff).toFixed(2))} steps apart</div>
-    <div style="min-height:92px">${sliderCert(kEff)}</div>
+    <div style="height:112px;overflow:auto">${sliderCert(kEff)}</div>
     <div class="resbox mono">
       <span class="tiny">measured</span> &nbsp; center distance d = <b class="amb">${dRR.toFixed(6)}</b> ring-radii<br>
       sin ${th.toFixed(1)}° = d / 2 = <b>${(dRR/2).toFixed(6)}</b><br>
