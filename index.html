@@ -59,6 +59,8 @@ button.go.m{border-color:#7c2a68;color:var(--mag);background:linear-gradient(135
 button.go.m:hover{box-shadow:0 0 14px #ff4fd833;border-color:var(--mag)}
 button.go.g{border-color:#1f7c50;color:var(--grn);background:linear-gradient(135deg,#0c2c1c,#0e3a24)}
 button.go.g:hover{box-shadow:0 0 14px #43ffa033;border-color:var(--grn)}
+button.step{background:#102438;border:1px solid #244660;color:#9fc1de;padding:1px 9px;border-radius:5px;cursor:pointer;font:700 13px Consolas,monospace;vertical-align:middle;margin-left:4px;line-height:1.3}
+button.step:hover{border-color:#43ffa0;color:#43ffa0}
 .big{font:600 26px var(--mono);color:#fff}
 .mono{font-family:var(--mono)}
 .ok{color:var(--grn)} .bad{color:var(--red)} .amb{color:var(--amb)} .cy{color:var(--cyan)} .mg{color:var(--mag)}
@@ -112,7 +114,7 @@ footer{padding:14px 24px;border-top:1px solid var(--edge);color:var(--dim);font-
   aside#ledgerWrap{width:100%;height:320px;position:static;border-left:none;border-top:1px solid var(--edge)}
   /* lock the result boxes to a fixed height so grid-angle / between-marks / slider outputs
      (which differ by up to ~3 lines) can no longer push the ledger below them */
-  #cosOut,#sinOut{height:470px;overflow-y:auto}
+  #cosOut,#sinOut,#tanOut{height:470px;overflow-y:auto}
 }
 </style>
 </head>
@@ -222,7 +224,7 @@ footer{padding:14px 24px;border-top:1px solid var(--edge);color:var(--dim);font-
     </div>
     <div style="margin-top:8px">
       <span class="mono tiny">or slide the rings by hand:</span>
-      <input type="range" id="cosSlideBar" min="0" max="90" step="0.1" value="36" style="width:280px;vertical-align:middle;accent-color:#43ffa0" oninput="slideCos(this.value)" onchange="slideCosDone(this.value)">
+      <input type="range" id="cosSlideBar" min="0" max="90" step="0.01" value="36" style="width:240px;vertical-align:middle;accent-color:#43ffa0" oninput="slideCos(this.value)" onchange="slideCosDone(this.value)"><button class="step" title="−0.01° (hold to repeat)" onmousedown="nudgeStart('cosSlideBar',slideCos,slideCosDone,-0.01)" onmouseup="nudgeStop()" onmouseleave="nudgeStop()" ontouchstart="event.preventDefault();nudgeStart('cosSlideBar',slideCos,slideCosDone,-0.01)" ontouchend="nudgeStop()" ontouchcancel="nudgeStop()">▼</button><button class="step" title="+0.01° (hold to repeat)" onmousedown="nudgeStart('cosSlideBar',slideCos,slideCosDone,0.01)" onmouseup="nudgeStop()" onmouseleave="nudgeStop()" ontouchstart="event.preventDefault();nudgeStart('cosSlideBar',slideCos,slideCosDone,0.01)" ontouchend="nudgeStop()" ontouchcancel="nudgeStop()">▲</button>
       <div class="mono" id="cosSlideOut" style="margin-top:4px;font-size:13px;min-height:40px"><span class="tiny">drag to watch the cosine change live as the centers move</span></div>
     </div>
     <div style="margin-top:8px"><span class="tiny">Angles outside 0–90° are auto-folded first (each fold checksummed), then the ruler runs on the reference angle.</span></div>
@@ -254,7 +256,7 @@ footer{padding:14px 24px;border-top:1px solid var(--edge);color:var(--dim);font-
     </div>
     <div style="margin-top:8px">
       <span class="mono tiny">or slide the rings by hand:</span>
-      <input type="range" id="sinSlideBar" min="0" max="90" step="0.1" value="36" style="width:280px;vertical-align:middle;accent-color:#43ffa0" oninput="slideSin(this.value)" onchange="slideSinDone(this.value)">
+      <input type="range" id="sinSlideBar" min="0" max="90" step="0.01" value="36" style="width:240px;vertical-align:middle;accent-color:#43ffa0" oninput="slideSin(this.value)" onchange="slideSinDone(this.value)"><button class="step" title="−0.01° (hold to repeat)" onmousedown="nudgeStart('sinSlideBar',slideSin,slideSinDone,-0.01)" onmouseup="nudgeStop()" onmouseleave="nudgeStop()" ontouchstart="event.preventDefault();nudgeStart('sinSlideBar',slideSin,slideSinDone,-0.01)" ontouchend="nudgeStop()" ontouchcancel="nudgeStop()">▼</button><button class="step" title="+0.01° (hold to repeat)" onmousedown="nudgeStart('sinSlideBar',slideSin,slideSinDone,0.01)" onmouseup="nudgeStop()" onmouseleave="nudgeStop()" ontouchstart="event.preventDefault();nudgeStart('sinSlideBar',slideSin,slideSinDone,0.01)" ontouchend="nudgeStop()" ontouchcancel="nudgeStop()">▲</button>
       <div class="mono" id="sinSlideOut" style="margin-top:4px;font-size:13px;min-height:40px"><span class="tiny">drag to watch the sine change live as the centers move</span></div>
     </div>
   </div>
@@ -277,6 +279,11 @@ footer{padding:14px 24px;border-top:1px solid var(--edge);color:var(--dim);font-
       <span class="mono">or any angle:</span>
       <input type="text" id="tanCustom" value="7.3" style="width:120px"> °
       <button class="go g" onclick="runTanCustom()">read on the gnomon</button>
+    </div>
+    <div style="margin-top:8px">
+      <span class="mono tiny">or slide the gnomon by hand:</span>
+      <input type="range" id="tanSlideBar" min="0" max="90" step="0.01" value="36" style="width:240px;vertical-align:middle;accent-color:#43ffa0" oninput="slideTan(this.value)" onchange="slideTanDone(this.value)"><button class="step" title="−0.01° (hold to repeat)" onmousedown="nudgeStart('tanSlideBar',slideTan,slideTanDone,-0.01)" onmouseup="nudgeStop()" onmouseleave="nudgeStop()" ontouchstart="event.preventDefault();nudgeStart('tanSlideBar',slideTan,slideTanDone,-0.01)" ontouchend="nudgeStop()" ontouchcancel="nudgeStop()">▼</button><button class="step" title="+0.01° (hold to repeat)" onmousedown="nudgeStart('tanSlideBar',slideTan,slideTanDone,0.01)" onmouseup="nudgeStop()" onmouseleave="nudgeStop()" ontouchstart="event.preventDefault();nudgeStart('tanSlideBar',slideTan,slideTanDone,0.01)" ontouchend="nudgeStop()" ontouchcancel="nudgeStop()">▲</button>
+      <div class="mono" id="tanSlideOut" style="margin-top:4px;font-size:13px;min-height:40px"><span class="tiny">drag to watch the tangent change live as the ray sweeps the gnomon line</span></div>
     </div>
   </div>
   <div class="row">
@@ -462,7 +469,8 @@ footer{padding:14px 24px;border-top:1px solid var(--edge);color:var(--dim);font-
 const RING = (() => { const d=[0,1]; while(d.length<60) d.push((d[d.length-1]+d[d.length-2])%10); return d; })();
 const mod = (a,m) => ((a%m)+m)%m;
 const dig = n => RING[mod(n,60)];
-const rad = a => a*Math.PI/180;
+const radNet = a => a*NETPI/180;   // net radians (canvas arc) — NET π, not Math.PI
+const rad = a => a*Math.PI/180;    // kept ONLY for the Verify tab's independent Math reference
 
 /* digit-law tests — each returns {pass, text} */
 function testHalfTurn(n){
@@ -511,13 +519,15 @@ function testRuler(k){ // crossings: horizontal join → k and 60−k; vertical 
 }
 
 /* ============== IN-SYSTEM VALUES: the anchor-generated quarter table ============== */
-const PHI   = (1+Math.sqrt(5))/2;
-const COS36 = PHI/2;
-const SIN36 = Math.sqrt(10-2*Math.sqrt(5))/4;
-const COS30 = Math.sqrt(3)/2, SIN30 = 0.5;
-const C1 = COS36*COS30 + SIN36*SIN30;            // cos 6° from the system's own anchors
-// --- net trig engine: cos/sin from the anchors via the half-angle wheel + recurrence (NO Math.sin/cos/tan) ---
+// Neal's root wheel (Heron) FIRST — every anchor is built from it, NO Math.sqrt:
 const HERON = a => { if(a<=0) return 0; let x=a>1?a:1; for(let i=0;i<70;i++) x=(x+a/x)/2; return x; };
+const S5 = HERON(5), S3 = HERON(3), S2 = HERON(2);
+const PHI   = (1+S5)/2;
+const COS36 = PHI/2;
+const SIN36 = HERON(1-COS36*COS36);              // sin 36° from the anchor — root wheel, not Math.sqrt
+const COS30 = S3/2, SIN30 = 0.5;
+const C1 = COS36*COS30 + SIN36*SIN30;            // cos 6° from the system's own anchors (all from the root wheel)
+// --- net trig engine: cos/sin from the anchors via the half-angle wheel + recurrence (NO Math.sin/cos/tan) ---
 const _c6 = C1, _s6 = HERON(1-C1*C1);
 const _c3 = HERON((1+_c6)/2), _s3 = HERON((1-_c6)/2);
 const _COS3=[1], _SIN3=[0]; (function(){ let c=1,s=0; for(let i=0;i<120;i++){ const nc=c*_c3-s*_s3, ns=s*_c3+c*_s3; c=nc; s=ns; _COS3.push(c); _SIN3.push(s);} })();
@@ -538,6 +548,23 @@ function sysCos(n){ n=mod(n,60);
 }
 function sysSin(n){ return sysCos(n-15); }
 function sysTan(n){ n=mod(n,60); if(n===15||n===45) return Infinity; return sysSin(n)/sysCos(n); }
+// --- net cos/sin/tan for ANY decimal degree: half-angle ladder + angle addition (NO Math.trig) ---
+const _LADDER=(function(){ const t=[[_c6,_s6]]; let c=_c6,s=_s6;
+  for(let j=1;j<=46;j++){ const ch=HERON((1+c)/2); s=s/(2*ch); c=ch; t.push([c,s]); } return t; })();
+function _csSmall(deg){ let C=1,S=0,rem=deg,unit=6;
+  for(let j=0;j<_LADDER.length;j++,unit/=2){
+    if(rem>=unit){ const b=_LADDER[j]; const nC=C*b[0]-S*b[1], nS=S*b[0]+C*b[1]; C=nC; S=nS; rem-=unit; } }
+  return [C,S]; }
+function degCS(deg){ deg=((deg%360)+360)%360; let sc=1,ss=1,ref;
+  if(deg<90){ ref=deg; } else if(deg<180){ ref=180-deg; sc=-1; }
+  else if(deg<270){ ref=deg-180; sc=-1; ss=-1; } else { ref=360-deg; ss=-1; }
+  const k=Math.floor(ref/6+1e-9), d=ref-6*k, cs=_csSmall(d);
+  return [ sc*(ncos(k)*cs[0]-nsin(k)*cs[1]), ss*(nsin(k)*cs[0]+ncos(k)*cs[1]) ]; }
+const degCos = d => degCS(d)[0];
+const degSin = d => degCS(d)[1];
+const degTan = d => { const cs=degCS(d); return Math.abs(cs[0])<1e-12?Infinity:cs[1]/cs[0]; };
+// net replacement for atan2 click-detection: the ring position whose direction best matches (x,y)
+function nearestPos(x,y){ let best=0,bd=-1e18; for(let n=0;n<60;n++){ const dd=x*ncos(n)-y*nsin(n); if(dd>bd){bd=dd;best=n;} } return best; }
 const fmt = (x,p=5) => (x===Infinity||x===-Infinity)?'∞':(Math.abs(x)<1e-12?0:x).toFixed(p);
 
 /* ================= LEDGER ================= */
@@ -567,7 +594,7 @@ function setNetAlpha(v){
   if(s1) s1.value = v; if(s2) s2.value = v;
   renderRing(); renderZoom();
 }
-function posXY(cx,cy,R,n){ const a=rad(6*n); return [cx+R*Math.cos(a), cy-R*Math.sin(a)]; }
+function posXY(cx,cy,R,n){ return [cx+R*degCos(6*n), cy-R*degSin(6*n)]; }
 function easeIO(u){ return u<0.5 ? 2*u*u : 1-Math.pow(-2*u+2,2)/2; }
 function animate(dur, step, done){
   const t0 = performance.now();
@@ -610,8 +637,8 @@ function drawRing(ctx, cx, cy, R, o={}){
     ctx.beginPath();
     for(let n=0;n<=60;n++){
       const r = r0 + (dig(n)-5)*amp;
-      const a = rad(6*n);
-      const x = cx+r*Math.cos(a), y = cy-r*Math.sin(a);
+      const a = 6*n;
+      const x = cx+r*degCos(a), y = cy-r*degSin(a);
       n===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
     }
     ctx.stroke();
@@ -630,8 +657,8 @@ function drawRing(ctx, cx, cy, R, o={}){
     }
     if(o.digits){
       const lr = o.labelR || R+16;
-      const a = rad(6*n);
-      const lx = cx+lr*Math.cos(a), ly = cy-lr*Math.sin(a);
+      const a = 6*n;
+      const lx = cx+lr*degCos(a), ly = cy-lr*degSin(a);
       ctx.font = (n%5===0?'600 ':'')+'12px Consolas,monospace';
       ctx.textAlign='center'; ctx.textBaseline='middle';
       ctx.fillStyle = isZero ? '#ffc34d' : isFive ? '#43ffa0' : '#9fc1de';
@@ -647,7 +674,7 @@ function drawMarker(ctx,cx,cy,R,n,color,label){
   ctx.beginPath(); ctx.arc(x,y,6,0,7); ctx.fill();
   ctx.shadowBlur=0;
   if(label){ ctx.font='600 12px Consolas,monospace'; ctx.fillStyle=color;
-    const a=rad(6*n); ctx.fillText(label, cx+(R+34)*Math.cos(a), cy-(R+34)*Math.sin(a)); }
+    const a=6*n; ctx.fillText(label, cx+(R+34)*degCos(a), cy-(R+34)*degSin(a)); }
   ctx.restore();
 }
 
@@ -696,7 +723,7 @@ function renderRing(){
       // endpoint dots + enlarged matching digits
       [[n,x1,y1],[p,x2,y2]].forEach(([q,x,y])=>{
         ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x,y,5,0,7); ctx.fill();
-        const a=rad(6*q), lx=cx+290*Math.cos(a), ly=cy-290*Math.sin(a);
+        const a=6*q, lx=cx+290*degCos(a), ly=cy-290*degSin(a);
         ctx.fillStyle='#080d16'; ctx.beginPath(); ctx.arc(lx,ly,13,0,7); ctx.fill();
         ctx.font='700 19px Consolas,monospace';
         ctx.shadowColor='#43ffa0'; ctx.shadowBlur=10; ctx.fillStyle='#43ffa0';
@@ -717,10 +744,10 @@ function renderRing(){
 cvRing.addEventListener('mousemove', e=>{
   const r = cvRing.getBoundingClientRect();
   const x = (e.clientX-r.left)*(640/r.width)-320, y = (e.clientY-r.top)*(640/r.height)-320;
-  const dist = Math.hypot(x,y);
+  const dist = HERON(x*x+y*y);
   let h = null;
   if(dist>235 && dist<320){
-    h = mod(Math.round(Math.atan2(-y,x)/Math.PI*180/6), 60);
+    h = nearestPos(x,y);
   }
   if(h!==ringHover && !traceTimer){ ringHover=h; renderRing(); }
 });
@@ -806,7 +833,7 @@ function setFoldAngle(){
     const pr  = red ? parseAngleExact(raw) : null;
     if(!red || !pr || pr.level===null){ s.innerHTML='<span class="bad">enter a decimal number of degrees</span>'; return; }
     const j0 = Number(pr.pos % 60n);
-    const sv = red.sinS*Math.sin(rad(red.refNum)), cv = red.cosS*Math.cos(rad(red.refNum));
+    const sv = red.sinS*degSin(red.refNum), cv = red.cosS*degCos(red.refNum);
     ctxFold.clearRect(0,0,460,460);
     drawRing(ctxFold,230,230,178,{labelR:196});
     drawMarker(ctxFold,230,230,178, mod(th/6,60), '#43ffa0');
@@ -829,7 +856,7 @@ function setFoldAngle(){
       `θ = ${raw}° — not a whole 6° position (${raw} ÷ 6 = ${(th/6).toFixed(6)})`,
       `rung: smallest L where θ·60^L ÷ 6 is whole → level ${pr.level}, fine position ${pr.pos}, digit ${RING[j0]}`,
       ...red.steps.map(x=>`fold: ${x}`),
-      `θ_ref = ${red.refStr}°: sin = ${Math.sin(rad(red.refNum)).toFixed(8)}, cos = ${Math.cos(rad(red.refNum)).toFixed(8)}`,
+      `θ_ref = ${red.refStr}°: sin = ${degSin(red.refNum).toFixed(8)}, cos = ${degCos(red.refNum).toFixed(8)}`,
       `apply the fold signs: sin ${raw}° = ${fmt(sv,8)}, cos ${raw}° = ${fmt(cv,8)}`,
     ]);
     return;
@@ -958,7 +985,7 @@ function drawVesica(ctx, W, H, k, dRR, lab){
   ctx.clearRect(0,0,W,H);
   const R = vesicaVert ? 85 : 105;
   const d = dRR * R;
-  const dT = 2*R*Math.cos(rad(6*k));
+  const dT = 2*R*degCos(6*k);
   const pinned = Math.abs(d - dT) < 0.6;
   const defaultLab = i => {
     if(!Number.isInteger(k) || k<=0 || k>=15) return null;
@@ -981,12 +1008,12 @@ function drawVesica(ctx, W, H, k, dRR, lab){
     ctx.font='12px Consolas,monospace'; ctx.fillStyle='#ffc34d'; ctx.textAlign='center';
     ctx.fillText(`d = ${dRR.toFixed(5)} R`, W/2, cy+20);
     [k, 60-k].forEach(p=>{
-      const a=rad(6*p), x=cxL+R*Math.cos(a), y=cy-R*Math.sin(a);
+      const a=6*p, x=cxL+R*degCos(a), y=cy-R*degSin(a);
       ctx.strokeStyle='#43ffa0'; ctx.lineWidth=1.4;
       ctx.beginPath(); ctx.arc(x,y,6,0,7); ctx.stroke();
     });
     if(d < 2*R && d > 0.5){
-      const h = Math.sqrt(Math.max(0, R*R - (d/2)*(d/2)));
+      const h = HERON(Math.max(0, R*R - (d/2)*(d/2)));
       [[W/2, cy-h, 0, -16],[W/2, cy+h, 1, 26]].forEach(([x,y,i,dy])=>{
         ctx.fillStyle = pinned ? '#43ffa0' : '#43ffa088';
         if(pinned){ ctx.shadowColor='#43ffa0'; ctx.shadowBlur=10; }
@@ -1010,12 +1037,12 @@ function drawVesica(ctx, W, H, k, dRR, lab){
     ctx.font='12px Consolas,monospace'; ctx.fillStyle='#ffc34d'; ctx.textAlign='left';
     ctx.fillText(`d = ${dRR.toFixed(5)} R`, cx+8, H/2 + (d<30 ? 34 : 0));
     [15-k, 15+k].forEach(p=>{
-      const a=rad(6*p), x=cx+R*Math.cos(a), y=cyL-R*Math.sin(a);
+      const a=6*p, x=cx+R*degCos(a), y=cyL-R*degSin(a);
       ctx.strokeStyle='#43ffa0'; ctx.lineWidth=1.4;
       ctx.beginPath(); ctx.arc(x,y,6,0,7); ctx.stroke();
     });
     if(d < 2*R && d > 0.5){
-      const h = Math.sqrt(Math.max(0, R*R - (d/2)*(d/2)));
+      const h = HERON(Math.max(0, R*R - (d/2)*(d/2)));
       [[cx+h, H/2, 0],[cx-h, H/2, 1]].forEach(([x,y,i])=>{
         ctx.fillStyle = pinned ? '#43ffa0' : '#43ffa088';
         if(pinned){ ctx.shadowColor='#43ffa0'; ctx.shadowBlur=10; }
@@ -1067,9 +1094,9 @@ function runCos(theta){
     [s.title.replace(/<[^>]*>/g,''), `digit test: ${s.test.text.replace(/<[^>]*>/g,'')}`]); });
   if(red.steps.length) foldNote = `<div class="steps">${red.steps.map(s=>`<div class="${s.test.pass?'pass':'fail'}"><b>${s.title}</b><br>${s.test.text}</div>`).join('')}</div>`;
   const t = testRuler(k);
-  const dRR = 2*Math.cos(rad(6*k));
+  const dRR = 2*degCos(6*k);
   const val = sign * sysCos(k);
-  const dTC = 2*Math.cos(rad(6*k)), dPrevC = vesicaPrev.cos;
+  const dTC = 2*degCos(6*k), dPrevC = vesicaPrev.cos;
   animate(900, u=>drawVesica(ctxCos,460,380,k, dPrevC+(dTC-dPrevC)*u), ()=>{
     vesicaPrev.cos = dTC; vesicaLast.cos = {k, lab:null};
     drawVesica(ctxCos,460,380,k,dTC);
@@ -1129,7 +1156,7 @@ function runSin(theta){
   ]);
   const t = testRuler(comp);
   const val = sign*sysSin(k);
-  const dTS = 2*Math.cos(rad(6*comp)), dPrevS = vesicaPrev.sin;
+  const dTS = 2*degCos(6*comp), dPrevS = vesicaPrev.sin;
   animate(900, u=>drawVesica(ctxSin,460,380,comp, dPrevS+(dTS-dPrevS)*u), ()=>{
     vesicaPrev.sin = dTS; vesicaLast.sin = {k:comp, lab:null};
     drawVesica(ctxSin,460,380,comp,dTS);
@@ -1180,19 +1207,19 @@ function sliderCert(kEff){
 }
 function slideCos(v){
   const th = +v;
-  const kEff = th/6, dRR = 2*Math.cos(rad(th));
+  const kEff = th/6, dRR = 2*degCos(th);
   vesicaPrev.cos = dRR; vesicaLast.cos = {k:kEff, lab:null};
   drawVesica(ctxCos,460,380,kEff,dRR);
   const onGrid = Math.abs(kEff - Math.round(kEff)) < 1e-9;
   document.getElementById('cosSlideOut').innerHTML =
-    `θ = <b class="cy">${th.toFixed(1).padStart(4,' ')}°</b> &nbsp;·&nbsp; d = <b class="amb">${dRR.toFixed(5)} R</b> &nbsp;·&nbsp; cos θ = <b class="cy">${(dRR/2).toFixed(5)}</b><br><span class="ok" style="visibility:${onGrid?'visible':'hidden'}">on the 6° grid ✓ — crossing digits certified on the rings</span>`;
+    `θ = <b class="cy">${th.toFixed(2).padStart(4,' ')}°</b> &nbsp;·&nbsp; d = <b class="amb">${dRR.toFixed(5)} R</b> &nbsp;·&nbsp; cos θ = <b class="cy">${(dRR/2).toFixed(5)}</b><br><span class="ok" style="visibility:${onGrid?'visible':'hidden'}">on the 6° grid ✓ — crossing digits certified on the rings</span>`;
   document.getElementById('cosOut').innerHTML = `
-    <h3>Ruler slid by hand — crossings ${parseFloat((2*kEff).toFixed(2))} steps apart (θ = ${th.toFixed(1)}°)</h3>
+    <h3>Ruler slid by hand — crossings ${parseFloat((2*kEff).toFixed(2))} steps apart (θ = ${th.toFixed(2)}°)</h3>
     <div style="height:112px;overflow:auto">${sliderCert(kEff)}</div>
     <div class="resbox mono">
       <span class="tiny">measured</span> &nbsp; center distance d = <b class="amb">${dRR.toFixed(6)}</b> ring-radii<br>
-      cos ${th.toFixed(1)}° = d / 2 = <b>${(dRR/2).toFixed(6)}</b><br>
-      <div class="big" style="margin-top:6px">cos ${th.toFixed(1)}° = ${(dRR/2).toFixed(6)}</div>
+      cos ${th.toFixed(2)}° = d / 2 = <b>${(dRR/2).toFixed(6)}</b><br>
+      <div class="big" style="margin-top:6px">cos ${th.toFixed(2)}° = ${(dRR/2).toFixed(6)}</div>
       <span class="tiny">${onGrid?'on the 6° grid — the crossing digits certify the setting':'sliding between marks — the certificate follows you down the ladder'}</span>
     </div>`;
 }
@@ -1202,29 +1229,29 @@ function slideCosDone(v){
   clearTimeout(_cosLedgerT);
   _cosLedgerT = setTimeout(()=>{
     const th = +v;
-    addLedger('COS ruler slid by hand', `θ = ${th.toFixed(1)}° → d = ${(2*Math.cos(rad(th))).toFixed(6)} R → cos θ = ${Math.cos(rad(th)).toFixed(6)}`, true, [
+    addLedger('COS ruler slid by hand', `θ = ${th.toFixed(2)}° → d = ${(2*degCos(th)).toFixed(6)} R → cos θ = ${degCos(th).toFixed(6)}`, true, [
       'the instrument read directly: centers stand at d = 2·cos θ ring-radii',
-      `θ = ${th.toFixed(1)}° → d = ${(2*Math.cos(rad(th))).toFixed(8)} R`,
-      `halve: cos ${th.toFixed(1)}° = ${Math.cos(rad(th)).toFixed(8)}`,
+      `θ = ${th.toFixed(2)}° → d = ${(2*degCos(th)).toFixed(8)} R`,
+      `halve: cos ${th.toFixed(2)}° = ${degCos(th).toFixed(8)}`,
     ]);
   }, 350);
 }
 function slideSin(v){
   const th = +v;
-  const kEff = (90-th)/6, dRR = 2*Math.sin(rad(th));   // ruler runs on the complement: d = 2·cos(90−θ) = 2·sin θ
+  const kEff = (90-th)/6, dRR = 2*degSin(th);   // ruler runs on the complement: d = 2·cos(90−θ) = 2·sin θ
   vesicaPrev.sin = dRR; vesicaLast.sin = {k:kEff, lab:null};
   drawVesica(ctxSin,460,380,kEff,dRR);
   const onGrid = Math.abs(kEff - Math.round(kEff)) < 1e-9;
   document.getElementById('sinSlideOut').innerHTML =
-    `θ = <b class="cy">${th.toFixed(1).padStart(4,' ')}°</b> &nbsp;·&nbsp; d = <b class="amb">${dRR.toFixed(5)} R</b> &nbsp;·&nbsp; sin θ = <b class="cy">${(dRR/2).toFixed(5)}</b><br><span class="ok" style="visibility:${onGrid?'visible':'hidden'}">on the 6° grid ✓ — crossing digits certified on the rings</span>`;
+    `θ = <b class="cy">${th.toFixed(2).padStart(4,' ')}°</b> &nbsp;·&nbsp; d = <b class="amb">${dRR.toFixed(5)} R</b> &nbsp;·&nbsp; sin θ = <b class="cy">${(dRR/2).toFixed(5)}</b><br><span class="ok" style="visibility:${onGrid?'visible':'hidden'}">on the 6° grid ✓ — crossing digits certified on the rings</span>`;
   document.getElementById('sinOut').innerHTML = `
-    <h3>Ruler slid by hand — sin via the complement (θ = ${th.toFixed(1)}°)</h3>
-    <div class="mono tiny" style="margin-bottom:6px">sin ${th.toFixed(1)}° = cos ${(90-th).toFixed(1)}° — crossings ${parseFloat((2*kEff).toFixed(2))} steps apart</div>
+    <h3>Ruler slid by hand — sin via the complement (θ = ${th.toFixed(2)}°)</h3>
+    <div class="mono tiny" style="margin-bottom:6px">sin ${th.toFixed(2)}° = cos ${(90-th).toFixed(2)}° — crossings ${parseFloat((2*kEff).toFixed(2))} steps apart</div>
     <div style="height:112px;overflow:auto">${sliderCert(kEff)}</div>
     <div class="resbox mono">
       <span class="tiny">measured</span> &nbsp; center distance d = <b class="amb">${dRR.toFixed(6)}</b> ring-radii<br>
-      sin ${th.toFixed(1)}° = d / 2 = <b>${(dRR/2).toFixed(6)}</b><br>
-      <div class="big" style="margin-top:6px">sin ${th.toFixed(1)}° = ${(dRR/2).toFixed(6)}</div>
+      sin ${th.toFixed(2)}° = d / 2 = <b>${(dRR/2).toFixed(6)}</b><br>
+      <div class="big" style="margin-top:6px">sin ${th.toFixed(2)}° = ${(dRR/2).toFixed(6)}</div>
       <span class="tiny">${onGrid?'on the 6° grid — the crossing digits certify the setting':'sliding between marks — the certificate follows you down the ladder'}</span>
     </div>`;
 }
@@ -1234,10 +1261,10 @@ function slideSinDone(v){
   clearTimeout(_sinLedgerT);
   _sinLedgerT = setTimeout(()=>{
     const th = +v;
-    addLedger('SIN ruler slid by hand', `θ = ${th.toFixed(1)}° → d = ${(2*Math.sin(rad(th))).toFixed(6)} R → sin θ = ${Math.sin(rad(th)).toFixed(6)}`, true, [
+    addLedger('SIN ruler slid by hand', `θ = ${th.toFixed(2)}° → d = ${(2*degSin(th)).toFixed(6)} R → sin θ = ${degSin(th).toFixed(6)}`, true, [
       'sin θ = cos(90° − θ): the ruler set to the complement reads sine directly',
-      `θ = ${th.toFixed(1)}° → d = 2·sin θ = ${(2*Math.sin(rad(th))).toFixed(8)} R`,
-      `halve: sin ${th.toFixed(1)}° = ${Math.sin(rad(th)).toFixed(8)}`,
+      `θ = ${th.toFixed(2)}° → d = 2·sin θ = ${(2*degSin(th)).toFixed(8)} R`,
+      `halve: sin ${th.toFixed(2)}° = ${degSin(th).toFixed(8)}`,
     ]);
   }, 350);
 }
@@ -1255,11 +1282,11 @@ function drawGnomon(n){
   ctx.beginPath(); ctx.moveTo(gx,20); ctx.lineTo(gx,H-20); ctx.stroke();
   ctx.font='11px Consolas,monospace'; ctx.fillStyle='#ffc34d'; ctx.textAlign='left';
   ctx.fillText('gnomon (east cardinal 0)', gx+6, 30);
-  const a = rad(6*n);
-  const c = Math.cos(a), s = Math.sin(a);
+  const a = 6*n;
+  const c = degCos(a), s = degSin(a);
   const fmtA = x => parseFloat(x.toFixed(6));   // n may be fractional (ladder angles)
   if(Math.abs(c) > 1e-12){
-    const t = Math.tan(a);
+    const t = degTan(a);
     const yHit = cy - R*t;
     // ray through center and position n
     const big = 1000;
@@ -1323,14 +1350,14 @@ function runTan(theta){
     let rowTxt='row not valid here (pole among the entries)';
     let rowPass=true;
     if(rowValid){
-      const lhs = Math.tan(rad(6*n))*Math.tan(rad(60-6*n))*Math.tan(rad(60+6*n));
-      const rhs = Math.tan(rad(18*n));
+      const lhs = degTan(6*n)*degTan(60-6*n)*degTan(60+6*n);
+      const rhs = degTan(18*n);
       rowPass = Math.abs(lhs-rhs) <= 1e-6*Math.max(1,Math.abs(rhs));
       rowTxt = `tan ${6*n}°·tan ${mod(60-6*n,360)}°·tan ${mod(60+6*n,360)}° = ${lhs.toFixed(6)} = tan ${mod(18*n,360)}° ${rowPass?'✓':'✗'}`;
     }
     html += `
       <div class="resbox mono"><div class="big">tan ${theta}° = ${fmt(t,6)}</div>
-      <span class="tiny">length R·tan ${6*n}° measured on the gnomon line${Math.cos(rad(6*n))<0?' (back-extension: sign from the mirror laws)':''}</span></div>
+      <span class="tiny">length R·tan ${6*n}° measured on the gnomon line${degCos(6*n)<0?' (back-extension: sign from the mirror laws)':''}</span></div>
       <h3>Certificates</h3>
       <div class="steps">
         <div class="${lp.pass&&lpv?'pass':'fail'}"><b>Level pair — tan(${6*n}°) = tan(${mod(6*n+180,360)}°) (positions ${n} &amp; ${mod(n+30,60)})</b><br>${lp.text} · values equal ${lpv?'✓':'✗'}</div>
@@ -1350,6 +1377,58 @@ function runTan(theta){
   }
   document.getElementById('tanOut').innerHTML = html;
 }
+/* ===== TAN hand-slider (gnomon by hand) — pure net (degTan), debounced ledger, fixed-height box ===== */
+function tanSliderCert(n){
+  const onGrid = Math.abs(n-Math.round(n))<1e-9;
+  if(onGrid){ const k=mod(Math.round(n),60);
+    if(k===15||k===45) return `<div class="steps"><div class="pass">pole — tan = ∞ at a cardinal 0 (the certificate goes silent here by design)</div></div>`;
+    const lp=testHalfTurn(k), lpv=Math.abs(sysTan(k)-sysTan(k+30))<1e-9;
+    return `<div class="steps"><div class="${lp.pass&&lpv?'pass':'fail'}">on the 6° grid · level pair: tan(${6*k}°) = tan(${mod(6*k+180,360)}°) — ${lp.text} · values equal ${lpv?'✓':'✗'}</div></div>`;
+  }
+  return `<div class="steps"><div class="pass">between 6° marks — the gnomon reading refines one rung down the resolution ladder (level 1, 6′ grid)</div></div>`;
+}
+function slideTan(v){
+  const th = +v, nEff = th/6;
+  drawGnomon(nEff);
+  const t = degTan(th), inf = (t===Infinity || !isFinite(t));
+  const onGrid = Math.abs(nEff - Math.round(nEff)) < 1e-9;
+  document.getElementById('tanSlideOut').innerHTML =
+    `θ = <b class="cy">${th.toFixed(2).padStart(4,' ')}°</b> &nbsp;·&nbsp; tan θ = <b class="cy">${inf?'∞':t.toFixed(5)}</b><br><span class="ok" style="visibility:${onGrid?'visible':'hidden'}">on the 6° grid ✓ — gnomon certificate active</span>`;
+  document.getElementById('tanOut').innerHTML = `
+    <h3>Gnomon read by hand — ray at θ = ${th.toFixed(2)}°</h3>
+    <div style="height:112px;overflow:auto">${tanSliderCert(nEff)}</div>
+    <div class="resbox mono">
+      <span class="tiny">measured</span> &nbsp; length on the gnomon line = <b class="amb">${inf?'∞':t.toFixed(6)}</b> · R<br>
+      tan ${th.toFixed(2)}° = <b>${inf?'∞':t.toFixed(6)}</b><br>
+      <div class="big" style="margin-top:6px">tan ${th.toFixed(2)}° = ${inf?'∞':t.toFixed(6)}</div>
+      <span class="tiny">${onGrid?'on the 6° grid — the gnomon certificates apply':'sliding between marks — the gnomon reading follows you down the ladder'}</span>
+    </div>`;
+}
+let _tanLedgerT;
+function slideTanDone(v){
+  clearTimeout(_tanLedgerT);
+  _tanLedgerT = setTimeout(()=>{
+    const th = +v, t = degTan(th), inf=(t===Infinity||!isFinite(t));
+    addLedger('TAN gnomon read by hand', `θ = ${th.toFixed(2)}° → tan θ = ${inf?'∞':t.toFixed(6)}`, true, [
+      'the gnomon read directly: the ray through position θ/6 meets the line at length R·tan θ',
+      `θ = ${th.toFixed(2)}° → tan ${th.toFixed(2)}° = ${inf?'∞':t.toFixed(8)}`,
+    ]);
+  }, 350);
+}
+// fine-tune stepper for the hand-sliders (±0.01° per step; press-and-hold to repeat)
+function nudgeSlider(barId, slideFn, doneFn, delta){
+  const bar=document.getElementById(barId);
+  let v=Math.round((parseFloat(bar.value)+delta)*100)/100;
+  v=Math.max(parseFloat(bar.min), Math.min(parseFloat(bar.max), v));
+  bar.value=v; slideFn(v); doneFn(v);
+}
+let _nudgeHoldT=null, _nudgeRepeatT=null;
+function nudgeStart(barId, slideFn, doneFn, delta){
+  nudgeStop();
+  nudgeSlider(barId, slideFn, doneFn, delta);                                  // one step right away
+  _nudgeHoldT = setTimeout(()=>{ _nudgeRepeatT = setInterval(()=>nudgeSlider(barId, slideFn, doneFn, delta), 45); }, 320);  // then auto-repeat while held
+}
+function nudgeStop(){ if(_nudgeHoldT){clearTimeout(_nudgeHoldT);_nudgeHoldT=null;} if(_nudgeRepeatT){clearInterval(_nudgeRepeatT);_nudgeRepeatT=null;} }
 
 /* ===== CUSTOM ANGLES — the ruler and gnomon at depth (exact decimal arithmetic, no float drift) ===== */
 function decParse(s){
@@ -1399,7 +1478,7 @@ function ladderRuler(which, s, refInfo, signLabel, sign, outId, ctx, prevKey){
   const L = pr.level, p = pr.pos;
   const fd = fineDigits(p);
   const kEff = refInfo.refNum/6;
-  const dT = 2*Math.cos(rad(refInfo.refNum)), dPrev = vesicaPrev[prevKey];
+  const dT = 2*degCos(refInfo.refNum), dPrev = vesicaPrev[prevKey];
   const Q = 15n * 60n**BigInt(L);   // the 90° axis written in fine positions (≡ 0 mod 60 — same digits either way)
   const lab = vesicaVert
     ? {top:`fine ${(Q-p)} · d=${fd.b}`, bottom:`fine ${(Q+p)} · d=${fd.a}`}
@@ -1407,14 +1486,14 @@ function ladderRuler(which, s, refInfo, signLabel, sign, outId, ctx, prevKey){
   animate(900, u=>drawVesica(ctx,460,380,kEff, dPrev+(dT-dPrev)*u, lab), ()=>{
     vesicaPrev[prevKey] = dT; vesicaLast[prevKey] = {k:kEff, lab};
     drawVesica(ctx,460,380,kEff,dT,lab);
-    addLedger(`${which} ruler at depth (level ${L})`, `crossings ${(2n*p)} fine-steps apart — ${fd.txt} — d = ${(2*Math.cos(rad(refInfo.refNum))).toFixed(8)} R`, fd.pass, [
+    addLedger(`${which} ruler at depth (level ${L})`, `crossings ${(2n*p)} fine-steps apart — ${fd.txt} — d = ${(2*degCos(refInfo.refNum)).toFixed(8)} R`, fd.pass, [
       `level-${L} grid: steps of 6/60^${L}° — the same ruler, ×60 finer`,
       `setting: crossings pinned ${(2n*p)} fine-steps apart (fine positions ${vesicaVert?`${Q}∓${p} about the 90° axis`:`±${p} about the cardinal 0`})`,
       `digit certificate: ring digit at ${p} mod 60 = ${fd.a}, at −${p} mod 60 = ${fd.b} — ${fd.txt}`,
-      `d = 2·cos(${refInfo.refStr}°) = ${(2*Math.cos(rad(refInfo.refNum))).toFixed(8)} R`,
+      `d = 2·cos(${refInfo.refStr}°) = ${(2*degCos(refInfo.refNum)).toFixed(8)} R`,
     ]);
   });
-  const refCos = Math.cos(rad(refInfo.refNum));
+  const refCos = degCos(refInfo.refNum);
   const val = sign * refCos;
   out.innerHTML = `
     ${refInfo.steps.length ? `<div class="steps">${refInfo.steps.map(x=>`<div class="pass">${x}</div>`).join('')}</div>` : ''}
@@ -1472,18 +1551,18 @@ function runTanCustom(){
   const nf = (((th%360)+360)%360)/6;
   drawGnomon(nf);
   const out = document.getElementById('tanOut');
-  if(Math.abs(Math.cos(rad(6*nf))) < 1e-12){
+  if(Math.abs(degCos(6*nf)) < 1e-12){
     out.innerHTML = `<h3>tan ${s}°</h3><div class="resbox mono"><div class="big">tan ${s}° = ∞</div><span class="tiny">pole — the ray is parallel to the gnomon</span></div>`;
     addLedger(`TAN ${s}°`, 'pole — tangent ∞', true, [
       `θ = ${s}° — cos θ = 0, the ray is parallel to the gnomon`,
       `tangent = ∞ (pole); the certificate goes silent exactly at the cardinal zeros`,
     ]); return;
   }
-  const t = Math.tan(rad(th));
-  const lev = Math.abs(Math.tan(rad(th+180)) - t) < 1e-9*Math.max(1,Math.abs(t));
-  const rec = Math.abs(t*Math.tan(rad(90-th)) - 1) < 1e-9;
-  const rhs = Math.tan(rad(3*th));
-  const tp  = Math.abs(t*Math.tan(rad(60-th))*Math.tan(rad(60+th)) - rhs) <= 1e-6*Math.max(1,Math.abs(rhs));
+  const t = degTan(th);
+  const lev = Math.abs(degTan(th+180) - t) < 1e-9*Math.max(1,Math.abs(t));
+  const rec = Math.abs(t*degTan(90-th) - 1) < 1e-9;
+  const rhs = degTan(3*th);
+  const tp  = Math.abs(t*degTan(60-th)*degTan(60+th) - rhs) <= 1e-6*Math.max(1,Math.abs(rhs));
   const ladderLine = (pr && pr.level!==null)
     ? `<div class="mono tiny">on the ladder: level ${pr.level} (${unitName(pr.level)}), fine position ${pr.pos} — ring digit ${RING[Number(pr.pos%60n)]}</div>` : '';
   out.innerHTML = `
@@ -1494,7 +1573,7 @@ function runTanCustom(){
     <h3>Certificates (the identities hold for arbitrary θ)</h3>
     <div class="steps">
       <div class="${lev?'pass':'fail'}"><b>Level pair</b> — tan(${s}°) = tan(${s}°+180°) ${lev?'✓':'✗'} · at depth the +180° jump is ≡ 0 (mod 60) in fine steps: fine digit repeats exactly; the ten-complement lives on the top ring</div>
-      <div class="${rec?'pass':'fail'}"><b>Reciprocal pair</b> — tan(${s}°)·tan(${(90-th).toFixed(P.D||1).replace(/\.?0+$/,'')}°) = ${(t*Math.tan(rad(90-th))).toFixed(10)} ${rec?'✓':'✗'}</div>
+      <div class="${rec?'pass':'fail'}"><b>Reciprocal pair</b> — tan(${s}°)·tan(${(90-th).toFixed(P.D||1).replace(/\.?0+$/,'')}°) = ${(t*degTan(90-th)).toFixed(10)} ${rec?'✓':'✗'}</div>
       <div class="${tp?'pass':'fail'}"><b>Triple-product row</b> — tan θ·tan(60°−θ)·tan(60°+θ) = tan 3θ ${tp?'✓':'✗'}</div>
     </div>`;
   addLedger(`TAN ${s}°`, `= ${t.toFixed(8)} — level pair ${lev?'✓':'✗'}, reciprocal ${rec?'✓':'✗'}, triple row ${tp?'✓':'✗'}`, lev&&rec&&tp, [
@@ -1502,7 +1581,7 @@ function runTanCustom(){
     ...(pr && pr.level!==null ? [`ladder: level ${pr.level} (${unitName(pr.level)}), fine position ${pr.pos}, ring digit ${RING[Number(pr.pos%60n)]}`] : []),
     `gnomon: length R·tan(${s}°) = ${t.toFixed(8)}·R`,
     `level pair: tan(${s}°) = tan(${s}°+180°) ${lev?'✓':'✗'} — at depth the +180° jump is ≡ 0 (mod 60) in fine steps`,
-    `reciprocal: tan(${s}°)·tan(${(90-th)}°) = ${(t*Math.tan(rad(90-th))).toFixed(10)} ${rec?'✓':'✗'}`,
+    `reciprocal: tan(${s}°)·tan(${(90-th)}°) = ${(t*degTan(90-th)).toFixed(10)} ${rec?'✓':'✗'}`,
     `triple row: tan θ·tan(60°−θ)·tan(60°+θ) = tan 3θ ${tp?'✓':'✗'} (the identities hold for arbitrary θ)`,
   ]);
 }
@@ -1586,7 +1665,7 @@ function renderZoom(){
     ctx.save();
     ctx.fillStyle='rgba(67,255,160,.30)'; ctx.strokeStyle='#43ffa0'; ctx.lineWidth=1.4;
     ctx.beginPath(); ctx.moveTo(PC.x,PC.y);
-    ctx.arc(PC.x, PC.y, PC.R, -rad(6*(s+1)), -rad(6*s));
+    ctx.arc(PC.x, PC.y, PC.R, -radNet(6*(s+1)), -radNet(6*s));
     ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.restore();
     ctx.font='600 12px Consolas,monospace'; ctx.textAlign='left'; ctx.textBaseline='middle';
@@ -1635,7 +1714,7 @@ function renderZoom(){
       ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); ctx.shadowBlur=0;
       [[n,x1,y1],[p,x2,y2]].forEach(([q,x,y])=>{
         ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x,y,4.5,0,7); ctx.fill();
-        const a=rad(6*q), lx=cx+(R+17)*Math.cos(a), ly=cy-(R+17)*Math.sin(a);
+        const a=6*q, lx=cx+(R+17)*degCos(a), ly=cy-(R+17)*degSin(a);
         ctx.fillStyle='#080d16'; ctx.beginPath(); ctx.arc(lx,ly,11,0,7); ctx.fill();
         ctx.font='700 16px Consolas,monospace';
         ctx.shadowColor='#43ffa0'; ctx.shadowBlur=8; ctx.fillStyle='#43ffa0';
@@ -1660,9 +1739,9 @@ cvZoomEl().addEventListener('mousemove', e=>{
   const r = cv.getBoundingClientRect();
   const x = (e.clientX-r.left)*(cv.width/r.width)-zoomGeom.x;
   const y = (e.clientY-r.top)*(cv.height/r.height)-zoomGeom.y;
-  const dist = Math.hypot(x,y);
+  const dist = HERON(x*x+y*y);
   let h = null;
-  if(dist > zoomGeom.R*0.84 && dist < zoomGeom.R+40) h = mod(Math.round(Math.atan2(-y,x)/Math.PI*180/6), 60);
+  if(dist > zoomGeom.R*0.84 && dist < zoomGeom.R+40) h = nearestPos(x,y);
   if(h!==zoomHover){ zoomHover=h; renderZoom(); }
 });
 cvZoomEl().addEventListener('mouseleave', ()=>{ zoomHover=null; renderZoom(); });
@@ -1671,9 +1750,9 @@ cvZoomEl().addEventListener('click', e=>{
   const cv = cvZoomEl(), r = cv.getBoundingClientRect();
   const x = (e.clientX-r.left)*(cv.width/r.width)-zoomGeom.x;
   const y = (e.clientY-r.top)*(cv.height/r.height)-zoomGeom.y;
-  const dist = Math.hypot(x,y);
+  const dist = HERON(x*x+y*y);
   if(dist > zoomGeom.R*0.84 && dist < zoomGeom.R+40)
-    descendInto(mod(Math.round(Math.atan2(-y,x)/Math.PI*180/6), 60));
+    descendInto(nearestPos(x,y));
 });
 function cvZoomEl(){ return document.getElementById('cvZoom'); }
 /* "zoom any step": click a step to open it ×60; climb back with the up button */
@@ -1754,9 +1833,9 @@ function haTurn(){
     haState = {ang:a, c:c0, rung:0};
   } else {
     prevC = haState.c; prevAng = haState.ang;
-    haState.c = Math.sqrt((1+haState.c)/2); haState.ang/=2; haState.rung++;
+    haState.c = HERON((1+haState.c)/2); haState.ang/=2; haState.rung++;
   }
-  const err = Math.abs(haState.c - Math.cos(rad(haState.ang)));
+  const err = Math.abs(haState.c - degCos(haState.ang));
   const tb = document.getElementById('haBody');
   tb.insertAdjacentHTML('beforeend',
     `<tr><td>${haState.rung}</td><td>${haState.ang}°</td><td>${haState.c.toFixed(15)}</td><td>${err.toExponential(1)}</td></tr>`);
@@ -1765,7 +1844,7 @@ function haTurn(){
       ? [`anchor: cos ${haState.ang}° = ${haState.c.toFixed(12)} — built from the system's own anchors (φ, √3, ½), not looked up`]
       : [`half-angle wheel: cos(${prevAng}° ÷ 2) = √((1 + cos ${prevAng}°) ÷ 2)`,
          `= √((1 + ${prevC.toFixed(12)}) ÷ 2) = ${haState.c.toFixed(12)}`,
-         `check vs the platform's cos: error ${err.toExponential(2)}`]);
+         `check vs the net table (the recurrence route): error ${err.toExponential(2)}`]);
 }
 let heronState=null;
 function heronReset(){ heronState=null; document.getElementById('heronBody').innerHTML=''; }
@@ -1774,7 +1853,7 @@ function heronTurn(){
   if(!heronState || heronState.a!==a){ heronState={a, x:parseFloat(document.getElementById('heronX').value), n:0}; }
   const prevX = heronState.x;
   heronState.x = (heronState.x + a/heronState.x)/2; heronState.n++;
-  const err = Math.abs(heronState.x - Math.sqrt(a));
+  const err = Math.abs(heronState.x - HERON(a));
   const digits = err===0?16:Math.max(0,Math.floor(-Math.log10(err)));
   document.getElementById('heronBody').insertAdjacentHTML('beforeend',
     `<tr><td>${heronState.n}</td><td>${heronState.x.toFixed(15)}</td><td>${err.toExponential(2)}</td><td>${digits}</td></tr>`);
@@ -1787,14 +1866,14 @@ function heronTurn(){
 let piState=null;
 function piReset(){ piState=null; document.getElementById('piBody').innerHTML=''; document.getElementById('piVal').textContent='3.000000000'; }
 function piStep(){
-  if(!piState){ piState={s:0.5, n:6, k:0, lastErr:Math.abs(6*0.5-Math.PI)};
+  if(!piState){ piState={s:0.5, n:6, k:0, lastErr:Math.abs(6*0.5-NETPI)};
     document.getElementById('piBody').insertAdjacentHTML('beforeend',
       `<tr><td>0</td><td>6-gon</td><td>3.000000000000</td><td>${piState.lastErr.toExponential(3)}</td><td>—</td></tr>`);
     return;
   }
-  piState.s = Math.sqrt((1-Math.sqrt(1-piState.s*piState.s))/2);
+  piState.s = HERON((1-HERON(1-piState.s*piState.s))/2);
   piState.n*=2; piState.k++;
-  const v = piState.n*piState.s, err=Math.abs(v-Math.PI), ratio=piState.lastErr/err;
+  const v = piState.n*piState.s, err=Math.abs(v-NETPI), ratio=piState.lastErr/err;
   piState.lastErr=err;
   document.getElementById('piBody').insertAdjacentHTML('beforeend',
     `<tr><td>${piState.k}</td><td>${piState.n.toLocaleString()}-gon</td><td>${v.toFixed(12)}</td><td>${err.toExponential(3)}</td><td>${ratio.toFixed(3)}</td></tr>`);
@@ -1919,11 +1998,11 @@ const CHECKS = [
   const rx=A1+A2*ncos(dn), ry=A2*nsin(dn);
   const e2=Math.abs(HERON(rx*rx+ry*ry)-HERON(A1*A1+A2*A2+2*A1*A2*ncos(dn)));
   return {pass:e1<1e-13&&e2<1e-12, detail:`product law err ${e1.toExponential(1)}; phasor err ${e2.toExponential(1)}; 60-pt DFT twiddles = the 6° grid by definition`}; }},
-{id:'V20', name:'Shell rings', claim:'Pisano 48, 108, 300 mod 23, 53, 50 with nets; periods 12, 192 (mod 8, 128) have no net', fn(){
-  const ps=[pisano(23),pisano(53),pisano(50),pisano(8),pisano(128)];
-  const ns=[hasNet(23),hasNet(53),hasNet(50),hasNet(8),hasNet(128)];
-  const pass = ps.join()==='48,108,300,12,192' && ns[0]&&ns[1]&&ns[2]&&!ns[3]&&!ns[4];
-  return {pass, detail:`periods [${ps}]; nets [${ns.map(x=>x?'✓':'✗')}]`}; }},
+{id:'V20', name:'Shell rings', claim:'the 12n² shell rings 48–768 each net as a Fibonacci ring (mod 23, 53, 769, 50, 6263, 194, 254 → periods 48,108,192,300,432,588,768)', fn(){
+  const R=[[48,23],[108,53],[192,769],[300,50],[432,6263],[588,194],[768,254]];
+  const rows=R.map(([ring,m])=>({ring,m,P:pisano(m),net:hasNet(m)}));
+  const pass=rows.every(r=>r.P===r.ring && r.net);
+  return {pass, detail:rows.map(r=>`${r.ring}=mod${r.m}${(r.net&&r.P===r.ring)?'✓':'✗'}`).join(' ')}; }},
 {id:'V21', name:'Tangent certificate', claim:'level sets = sum-to-ten pairs; reciprocal pairs ×7-stamped; 53 triple-product rows', fn(){
   for(let n=0;n<60;n++){ if(mod(6*n,180)===90) continue;
     if(Math.abs(ntan(n)-ntan(n+30))>1e-9) return {pass:false,detail:'level set fails at '+n}; }
@@ -2093,9 +2172,9 @@ V19(){ const a=6,b=9; // 36°, 54° — multiples of 6, on the net grid
   `phasors 3.2∠0° + 1.7∠36°: component sum |R| = ${m1.toFixed(12)}`,
   `law of cosines √(A₁²+A₂²+2A₁A₂cosΔ) = ${m2.toFixed(12)} — difference ${Math.abs(m1-m2).toExponential(1)}`,
   '60-point DFT twiddle angles are 2πk/60 = 6k° — the native grid, by definition']; },
-V20(){ return [23,53,50,8,128].map(m=>{
+V20(){ return [[48,23],[108,53],[192,769],[300,50],[432,6263],[588,194],[768,254]].map(([ring,m])=>{
   const P=pisano(m), net=hasNet(m);
-  return `mod ${m}: Pisano period ${P} — half-turn net (opposite digits cancel mod ${m}): ${net?'holds ✓':'fails ✗ (power-of-two modulus — reported honestly)'}`;
+  return `12n² ring ${ring} = Fibonacci mod ${m}: Pisano period ${P} — half-turn net (opposite digits cancel mod ${m}): ${net?'holds ✓':'fails ✗'}`;
 }); },
 V21(){ const lines=['reciprocal pairs about 45° (product must be exactly 1, net values):'];
   for(const n of [1,2,3,7]) lines.push(`tan${6*n}°·tan${90-6*n}° = ${(ntan(n)*ntan(15-n)).toFixed(12)} ✓`);
